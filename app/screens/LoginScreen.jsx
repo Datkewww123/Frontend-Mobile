@@ -10,24 +10,24 @@ import {
 } from 'react-native';
 
 import { COLORS } from '../../constants/colors';
-export default function LoginScreen() {
+export default function LoginScreen() { // export default nếu k có chữ này thì login screen sẽ báo lỗi từ từ trong loginScreen (navigation) tại bây giwof chưa có màn hình khác
 
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [zone, setZone]         = useState('');
+  const [username, setUsername] = useState(''); // username lưu giá trị hiện tại, setUsername sẽ lưu giá trị mới
+  const [password, setPassword] = useState(''); // tương tự
+  const [zone, setZone]         = useState('');// tương tự
 
-  const zones = ['Khu A', 'Khu B', 'Khu C', 'Khu D'];
+  const zones = ['Khu A', 'Khu B', 'Khu C', 'Khu D']; // array bth
 
-  function handleLogin() {
+  const handleLogin = () => { // quy ước của React khi hàm này xử lí 1 sự kiện gì đó phải có chữ handle
     if (!username || !password || !zone) {
       Alert.alert('Lỗi', 'Vui lòng điền đầy đủ thông tin');
-      return;
+      return; // dừng hàm ở đây 
     }
     Alert.alert('Thành công', `Xin chào ${username}!`);
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={styles.safeArea}> 
       <View style={styles.container}>
 
         <View style={styles.logoBox}>

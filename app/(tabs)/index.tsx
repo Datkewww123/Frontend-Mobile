@@ -1,5 +1,5 @@
-import LoginScreen from "../screen/LoginScreen";
+import DashboardScreen from "../screens/DashBoardScreen";
 
 export default function App() {
-  return <LoginScreen />;
+  return <DashboardScreen/>;
 }
