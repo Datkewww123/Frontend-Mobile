@@ -139,7 +139,8 @@ export default function DashboardScreen(){
                     <Text style={styles.navIcon}>🔧</Text>
                     <Text style={styles.navLabel}>Tiện ích</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.navItem}>
+                <TouchableOpacity style={styles.navItem}     style={styles.navItem}
+                        onPress={() => router.push('/profile')}>
                     <Text style={styles.navIcon}>👤</Text>
                     <Text style={styles.navLabel}>Tài khoản</Text>
                 </TouchableOpacity>
