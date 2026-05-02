@@ -1,4 +1,5 @@
 import {useState} from 'react';
+import { router } from 'expo-router';
 import{
     View,
     Text,
@@ -7,7 +8,7 @@ import{
     SafeAreaView,
     ScrollView,
 } from 'react-native';
-import {COLORS} from '../../constants/colors'
+import {COLORS} from '../constants/colors'
 export default function DashboardScreen(){
     return(
        <SafeAreaView style={styles.safeArea}>
@@ -53,7 +54,9 @@ export default function DashboardScreen(){
                 <Text style={styles.sectionTitle}>📦 Đơn hàng hôm nay</Text>
 
                 {/* Đơn hàng 1 - Đang làm */}
-                <View style={styles.orderCard}>
+                <TouchableOpacity 
+                    style={styles.orderCard}
+                    onPress={() => router.push('/productlist')}>
                     <View style={styles.orderHead}>
                         <View>
                             <Text style={styles.orderId}>#KF-12345</Text>
@@ -70,10 +73,13 @@ export default function DashboardScreen(){
                         </View>
                         <Text style={styles.pctText}>87%</Text>
                     </View>
-                </View>
+                </TouchableOpacity>
 
                 {/* Đơn hàng 2 - Xong */}
-                <View style={styles.orderCard}>
+               <TouchableOpacity 
+                        style={styles.orderCard}
+                        onPress={() => router.push('/productlist')}
+                    >
                     <View style={styles.orderHead}>
                         <View>
                             <Text style={styles.orderId}>#KF-12346</Text>
@@ -90,10 +96,13 @@ export default function DashboardScreen(){
                         </View>
                         <Text style={styles.pctText}>100%</Text>
                     </View>
-                </View>
+                </TouchableOpacity>
 
                 {/* Đơn hàng 3 - Chờ */}
-                <View style={styles.orderCard}>
+               <TouchableOpacity 
+                        style={styles.orderCard}
+                        onPress={() => router.push('/productlist')}
+                    >
                     <View style={styles.orderHead}>
                         <View>
                             <Text style={styles.orderId}>#KF-12347</Text>
@@ -110,7 +119,7 @@ export default function DashboardScreen(){
                         </View>
                         <Text style={[styles.pctText, { color: '#aaa' }]}>0%</Text>
                     </View>
-                </View>
+                </TouchableOpacity>
 
             </ScrollView>
             <View style = {styles.bottomNav}>

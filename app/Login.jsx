@@ -1,4 +1,5 @@
-import { useState } from 'react'; // lay cong cu use state cua thu vien react de tao bien cap nhat UI
+import { useState } from 'react'; // lay cong cu use state cua thu vien react de tao bien cap nhat UI, là 1 công cụ dùng để taok variable
+import { router } from 'expo-router'; // là công cụ chuyển màn hình, tương tự như navigator nhma đơn giản hơn
 import {
   View,
   Text,
@@ -9,7 +10,7 @@ import {
   Alert,
 } from 'react-native';
 
-import { COLORS } from '../../constants/colors';
+import { COLORS } from '../constants/colors';
 export default function LoginScreen() { // export default nếu k có chữ này thì login screen sẽ báo lỗi từ từ trong loginScreen (navigation) tại bây giwof chưa có màn hình khác
 
   const [username, setUsername] = useState(''); // username lưu giá trị hiện tại, setUsername sẽ lưu giá trị mới
@@ -23,7 +24,7 @@ export default function LoginScreen() { // export default nếu k có chữ này
       Alert.alert('Lỗi', 'Vui lòng điền đầy đủ thông tin');
       return; // dừng hàm ở đây 
     }
-    Alert.alert('Thành công', `Xin chào ${username}!`);
+    router.push('/dashboard');
   }
 
   return (
