@@ -131,7 +131,7 @@ export default function DashboardScreen(){
                     <Text style = {styles.navIcon}>📦</Text>
                     <Text style = {[styles.navLabel, styles.navActive]}>Đơn hàng</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style = {styles.navItem}>
+                <TouchableOpacity style={styles.navItem} onPress={() => router.push('/packing')}>
                     <Text style ={styles.navIcon}>📷</Text>
                     <Text style ={[styles.navLabel, styles.navActive]}>Quét mã</Text>
                 </TouchableOpacity>
