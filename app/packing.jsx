@@ -48,13 +48,13 @@ export default function PackingScreen(){
                     <Text style = {styles.locationLabel}>📍 Vị trí kệ</Text>
                     <Text style = {styles.locationCode}>{pickItem.location}</Text>
                     <Text style = {styles.locationDetail}>{pickItem.locationDetail}</Text>
-                </View>
                 {/* Thanh hiển thị step */}
                 <View style = {styles.stepRow}>
                     <View style = {[styles.stepDot, styles.stepActive]}/>
                     <View style = {styles.stepLine}/>
                     <View style = {styles.stepDot}/>
                 </View>
+                   </View>
                 {/* Card sản phẩm */}
                 <View style = {styles.productCard}>
                     {/* Emoji + Số lượng sản phẩm */}
@@ -104,6 +104,29 @@ export default function PackingScreen(){
                     <Text style = {styles.btnOutlineText}>Hết hàng/ Báo thiếu</Text>
                 </TouchableOpacity>
             </ScrollView>
+             <View style = {styles.bottomNav}>
+                            <TouchableOpacity style ={styles.navItem}>
+                                <Text style = {styles.navIcon}>🏠</Text>
+                                <Text style ={[styles.navLabel]}>Trang Chủ</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style ={styles.navItem}>
+                                <Text style = {styles.navIcon}>📦</Text>
+                                <Text style = {[styles.navLabel, styles.navActive]}>Đơn hàng</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={styles.navItem} onPress={() => router.push('/packing')}>
+                                <Text style ={styles.navIcon}>📷</Text>
+                                <Text style ={[styles.navLabel]}>Quét mã</Text>
+                            </TouchableOpacity>
+                                <TouchableOpacity style={styles.navItem} onPress={() => router.push('/setting')}>
+                                <Text style={styles.navIcon}>🔧</Text>
+                                <Text style={styles.navLabel}>Tiện ích</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={styles.navItem}
+                                    onPress={() => router.push('/profile')}>
+                                <Text style={styles.navIcon}>👤</Text>
+                                <Text style={styles.navLabel}>Tài khoản</Text>
+                            </TouchableOpacity>
+                        </View>
         </SafeAreaView>
     );
 }
@@ -306,4 +329,27 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontWeight: '600',
     },
+      bottomNav: {
+        flexDirection: 'row',
+        backgroundColor: '#fff',
+        paddingVertical: 10,
+        borderTopWidth: 1,
+        borderTopColor: '#eee',
+    },
+    navItem: {
+        flex: 1,
+        alignItems: 'center',
+    },
+    navIcon: {
+        fontSize: 22,
+    },
+    navLabel: {
+        fontSize: 10,
+        color: '#aaa',
+        marginTop: 2,
+    },
+    navActive: {
+        color: COLORS.primary,
+        fontWeight: '600',
+    }
 });
