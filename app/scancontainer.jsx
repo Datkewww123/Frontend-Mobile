@@ -65,6 +65,15 @@ export default function ScancontainerScreen(){
             onPress = {() => router.push('/dashboard')}>
                 <Text style ={styles.btnPrimaryText}>QUÉT MÃ THÙNG ĐỂ XÁC NHẬN</Text>
             </TouchableOpacity>
+            {/* Sai BIN / Chuyển thùng */}
+            <TouchableOpacity
+                style={styles.moveBtn}
+                onPress={() => router.push('/moveitem')}
+            >
+                <Text style={styles.moveBtnText}>
+                    🔄 Quét nhầm thùng? Chuyển thùng
+                </Text>
+            </TouchableOpacity>
             {/* Nút quét lại sản phẩm */}
             <TouchableOpacity
             style = {styles.btnOutline}
@@ -159,6 +168,17 @@ const styles = StyleSheet.create({
         fontSize: 12,
         marginTop: 2,
     },
+    //thanh quét lại sản phảm
+    moveBtn: {
+    alignItems: 'center',
+    marginBottom: 10,
+},
+
+moveBtnText: {
+    color: '#e65100',
+    fontSize: 13,
+    fontWeight: '700',
+},
 
     // Thanh bước
     stepRow: {

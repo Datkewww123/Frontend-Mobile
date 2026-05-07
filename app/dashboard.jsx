@@ -123,7 +123,7 @@ export default function DashboardScreen(){
 
             </ScrollView>
             <View style = {styles.bottomNav}>
-                <TouchableOpacity style ={styles.navItem}>
+                <TouchableOpacity style ={styles.navItem}onPress={() => router.push('/dashboard')}>
                     <Text style = {styles.navIcon}>🏠</Text>
                     <Text style ={[styles.navLabel, styles.navActive]}>Trang Chủ</Text>
                 </TouchableOpacity>

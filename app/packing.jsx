@@ -103,9 +103,15 @@ export default function PackingScreen(){
                 onPress = {() => router.push('/missingitem')}>
                     <Text style = {styles.btnOutlineText}>Hết hàng/ Báo thiếu</Text>
                 </TouchableOpacity>
+                <TouchableOpacity
+                    style={styles.btnMap}
+                    onPress={() => router.push('/warehousemap')}
+                    >
+                    <Text style={styles.btnMapText}>🗺️ Xem bản đồ kho</Text>
+                </TouchableOpacity>
             </ScrollView>
              <View style = {styles.bottomNav}>
-                            <TouchableOpacity style ={styles.navItem}>
+                            <TouchableOpacity style ={styles.navItem}onPress={() => router.push('/dashboard')}>
                                 <Text style = {styles.navIcon}>🏠</Text>
                                 <Text style ={[styles.navLabel]}>Trang Chủ</Text>
                             </TouchableOpacity>
@@ -351,5 +357,16 @@ const styles = StyleSheet.create({
     navActive: {
         color: COLORS.primary,
         fontWeight: '600',
-    }
+    },
+    btnMap: {
+    alignItems: 'center',
+    padding: 10,
+    marginTop: 4,
+    marginBottom: 4,
+},
+btnMapText: {
+    fontSize: 13,
+    color: COLORS.primary,
+    fontWeight: '600',
+},
 });
