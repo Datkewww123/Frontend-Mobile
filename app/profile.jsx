@@ -88,6 +88,13 @@ export default function ProfileScreen (){
                         when="15/02/2026"
                     />
                </View>
+               {/* Nút tổng kết ca */}
+               <TouchableOpacity 
+                style={styles.shiftBtn}
+                onPress={() => router.push('/endshift')}
+                >
+                <Text style={styles.shiftBtnText}>📊 Xem tổng kết ca</Text>
+                </TouchableOpacity>
                {/* Nút đổi pin */}
                <TouchableOpacity style = {styles.pinBtn}>
                 <Text style = {styles.pinBtnText}> Đổi Pin đăng nhập</Text>
@@ -239,4 +246,17 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         color: '#666',
     },
+    shiftBtn: {
+    margin: 12,
+    marginBottom: 0,
+    padding: 16,
+    backgroundColor: COLORS.primary,
+    borderRadius: 16,
+    alignItems: 'center',
+},
+shiftBtnText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#fff',
+},
 });
