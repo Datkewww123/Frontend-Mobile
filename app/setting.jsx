@@ -2,7 +2,8 @@ import {Text, TextInput, View, TouchableOpacity, StyleSheet, ScrollView, Switch}
 import {useState} from 'react'
 import{router} from 'expo-router'
 import {COLORS} from '../constants/colors'
-import  {SafeAreaView} from 'react-native-safe-area-context' // bản nâng cấp hơn so với việc import chỉ từ react native
+import  {SafeAreaView} from 'react-native-safe-area-context'
+import { useAuth } from '../contexts/AuthContext'
 
 // Tạo 1 component chung cho tất cả các card (tại vì cấu trúc cho từng dòng khá giống nhau)
 
@@ -34,6 +35,7 @@ function InfoRow({label, value}){
     )
 }
 export default function SettingScreen(){
+    const { logout } = useAuth();
     // Mỗi switch sẽ có 1 useState riêng
     const[beepSound, setBeepSound] = useState(true);
     const[vibrate, setVibrate] = useState(true);
@@ -100,7 +102,10 @@ export default function SettingScreen(){
                  {/* Nút đăng xuất */}
                 <TouchableOpacity 
                     style={styles.logoutBtn}
-                    onPress={() => router.replace('/Login')}
+                    onPress={() => {
+                        logout();
+                        router.replace('/Login');
+                    }}
                 >
                     <Text style={styles.logoutText}> Đăng xuất</Text>
                 </TouchableOpacity>

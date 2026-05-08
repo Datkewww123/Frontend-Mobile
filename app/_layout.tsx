@@ -1,7 +1,54 @@
-import { Stack } from 'expo-router';
+import {
+    Stack,
+    Redirect,
+    usePathname,
+} from 'expo-router';
+
+import { AuthProvider, useAuth }
+from '../contexts/AuthContext';
+
+import FloatingAssistiveButton
+from '../components/FloatingAssistiveButton';
+
+function LayoutContent() {
+
+    const { isLoggedIn } = useAuth();
+
+    const pathname = usePathname();
+
+    const isLoginScreen =
+        pathname === '/Login';
+
+    if (!isLoggedIn && !isLoginScreen) {
+
+        return <Redirect href="/Login" />;
+    }
+
+    return (
+
+        <>
+            <Stack
+                screenOptions={{
+                    headerShown: false,
+                }}
+            />
+
+            {isLoggedIn && (
+                <FloatingAssistiveButton />
+            )}
+
+        </>
+
+    );
+}
 
 export default function Layout() {
+
     return (
-        <Stack screenOptions={{ headerShown: false }} />
+
+        <AuthProvider>
+            <LayoutContent />
+        </AuthProvider>
+
     );
 }

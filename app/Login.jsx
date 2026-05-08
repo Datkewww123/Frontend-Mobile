@@ -1,5 +1,5 @@
-import { useState } from 'react'; // lay cong cu use state cua thu vien react de tao bien cap nhat UI, là 1 công cụ dùng để taok variable
-import { router } from 'expo-router'; // là công cụ chuyển màn hình, tương tự như navigator nhma đơn giản hơn
+import { useState } from 'react';
+import { router } from 'expo-router';
 import {
   View,
   Text,
@@ -11,19 +11,24 @@ import {
 } from 'react-native';
 
 import { COLORS } from '../constants/colors';
-export default function LoginScreen() { // export default nếu k có chữ này thì login screen sẽ báo lỗi từ từ trong loginScreen (navigation) tại bây giwof chưa có màn hình khác
+import { useAuth } from '../contexts/AuthContext';
 
-  const [username, setUsername] = useState(''); // username lưu giá trị hiện tại, setUsername sẽ lưu giá trị mới
-  const [password, setPassword] = useState(''); // tương tự
-  const [zone, setZone]         = useState('');// tương tự
+export default function LoginScreen() {
 
-  const zones = ['Khu A', 'Khu B', 'Khu C', 'Khu D']; // array bth
+  const { login } = useAuth();
 
-  const handleLogin = () => { // quy ước của React khi hàm này xử lí 1 sự kiện gì đó phải có chữ handle
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [zone, setZone]         = useState('');
+
+  const zones = ['Khu A', 'Khu B', 'Khu C', 'Khu D'];
+
+  const handleLogin = () => {
     if (!username || !password || !zone) {
       Alert.alert('Lỗi', 'Vui lòng điền đầy đủ thông tin');
-      return; // dừng hàm ở đây 
+      return;
     }
+    login();
     router.push('/dashboard');
   }
 
