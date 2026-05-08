@@ -113,7 +113,7 @@ export default function PackingScreen(){
              <View style = {styles.bottomNav}>
                             <TouchableOpacity style ={styles.navItem}onPress={() => router.push('/dashboard')}>
                                 <Text style = {styles.navIcon}>🏠</Text>
-                                <Text style ={[styles.navLabel]}>Trang Chủ</Text>
+                                <Text style ={[styles.navLabel, styles.navActive]}>Trang Chủ</Text>
                             </TouchableOpacity>
                             <TouchableOpacity style ={styles.navItem}onPress={() => router.push('/team')} >
                                 <Text style = {styles.navIcon}>👥</Text>
@@ -121,7 +121,7 @@ export default function PackingScreen(){
                             </TouchableOpacity>
                             <TouchableOpacity style={styles.navItem} onPress={() => router.push('/packing')}>
                                 <Text style ={styles.navIcon}>📷</Text>
-                                <Text style ={[styles.navLabel]}>Quét mã</Text>
+                                <Text style ={[styles.navLabel, styles.navActive]}>Quét mã</Text>
                             </TouchableOpacity>
                                 <TouchableOpacity style={styles.navItem} onPress={() => router.push('/setting')}>
                                 <Text style={styles.navIcon}>🔧</Text>
@@ -139,7 +139,7 @@ export default function PackingScreen(){
 const styles = StyleSheet.create({
     safeArea: {
         flex: 1,
-        backgroundColor: '#f0f4f1',
+        backgroundColor: '#fff',
     },
 
     // Header
@@ -147,19 +147,19 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: 16,
-        backgroundColor: '#fff',
+        paddingHorizontal: 16,
+        paddingVertical: 14,
         borderBottomWidth: 1,
         borderBottomColor: '#eee',
     },
     backBtn: {
         fontSize: 28,
-        color: COLORS.primary,
+        color: COLORS.text,
     },
     headerTitle: {
-        fontSize: 16,
+        fontSize: 18,
         fontWeight: '700',
-        color: '#222',
+        color: COLORS.text,
     },
     badge: {
         backgroundColor: '#f5f5f5',
@@ -337,26 +337,31 @@ const styles = StyleSheet.create({
     },
       bottomNav: {
         flexDirection: 'row',
-        backgroundColor: '#fff',
-        paddingVertical: 10,
+        justifyContent: 'space-around',
+        alignItems: 'center',
         borderTopWidth: 1,
         borderTopColor: '#eee',
+        paddingVertical: 10,
+        backgroundColor: '#fff',
     },
+
     navItem: {
-        flex: 1,
         alignItems: 'center',
     },
+
     navIcon: {
-        fontSize: 22,
+        fontSize: 20,
+        marginBottom: 4,
     },
+
     navLabel: {
-        fontSize: 10,
-        color: '#aaa',
-        marginTop: 2,
+        fontSize: 12,
+        color: '#666',
     },
+
     navActive: {
         color: COLORS.primary,
-        fontWeight: '600',
+        fontWeight: '700',
     },
     btnMap: {
     alignItems: 'center',

@@ -12,10 +12,8 @@ import {COLORS} from '../constants/colors'
 export default function DashboardScreen(){
     return(
        <SafeAreaView style={styles.safeArea}>
-
             {/* PHẦN 1: BANNER CA LÀM VIỆC */}
             <View style={styles.banner}>
-
                 {/* Tên và khu vực */}
                 <View style={styles.bannerTop}>
                     <View>
@@ -28,7 +26,6 @@ export default function DashboardScreen(){
                         <Text style={styles.shiftValue}>08:00–16:00</Text>
                     </View>
                 </View>
-
                 {/* 3 chỉ số KPI */}
                 <View style={styles.kpiRow}>
                     <View style={styles.kpiItem}>
@@ -48,7 +45,16 @@ export default function DashboardScreen(){
                 </View>
 
             </View>
-
+             <TouchableOpacity
+            style={styles.searchBar}
+            onPress={() => router.push('/skusearch')}
+        >
+            <Text style={styles.searchIcon}>🔍</Text>
+            <Text style={styles.searchPlaceholder}>
+                Tìm tên sản phẩm hoặc mã SKU...
+            </Text>
+            <Text style={styles.searchCamera}>📷</Text>
+        </TouchableOpacity>
             {/* PHẦN 2: DANH SÁCH ĐƠN HÀNG */}
             <ScrollView style={styles.scroll}>
                 <Text style={styles.sectionTitle}>📦 Đơn hàng hôm nay</Text>
@@ -145,6 +151,7 @@ export default function DashboardScreen(){
                     <Text style={styles.navLabel}>Tài khoản</Text>
                 </TouchableOpacity>
             </View>
+            
             </SafeAreaView>
 )}
 const styles = StyleSheet.create({
@@ -152,7 +159,7 @@ const styles = StyleSheet.create({
     // Màn hình tổng
     safeArea: {
         flex: 1,
-        backgroundColor: '#f0f4f1',
+        backgroundColor: '#fff',
     },
 
     // Banner xanh phía trên
@@ -310,25 +317,51 @@ const styles = StyleSheet.create({
     // Bottom Navigation
     bottomNav: {
         flexDirection: 'row',
-        backgroundColor: '#fff',
-        paddingVertical: 10,
+        justifyContent: 'space-around',
+        alignItems: 'center',
         borderTopWidth: 1,
         borderTopColor: '#eee',
+        paddingVertical: 10,
+        backgroundColor: '#fff',
     },
+
     navItem: {
-        flex: 1,
         alignItems: 'center',
     },
+
     navIcon: {
-        fontSize: 22,
+        fontSize: 20,
+        marginBottom: 4,
     },
+
     navLabel: {
-        fontSize: 10,
-        color: '#aaa',
-        marginTop: 2,
+        fontSize: 12,
+        color: '#666',
     },
+
     navActive: {
         color: COLORS.primary,
-        fontWeight: '600',
+        fontWeight: '700',
     },
+    searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    marginHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 4,
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    gap: 10,
+    borderWidth: 1.5,
+    borderColor: COLORS.accent,
+},
+searchIcon: { fontSize: 18 },
+searchPlaceholder: {
+    flex: 1,
+    fontSize: 14,
+    color: '#aaa',
+},
+searchCamera: { fontSize: 18 },
 });

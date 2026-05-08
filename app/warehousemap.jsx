@@ -141,7 +141,7 @@ export default function WarehouseMapScreen(){
 const styles = StyleSheet.create({
     safeArea: {
         flex: 1,
-        backgroundColor: '#f0f4f1',
+        backgroundColor: '#fff',
     },
 
     // Header
@@ -149,19 +149,19 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: 16,
-        backgroundColor: '#fff',
+        paddingHorizontal: 16,
+        paddingVertical: 14,
         borderBottomWidth: 1,
         borderBottomColor: '#eee',
     },
     backBtn: {
         fontSize: 28,
-        color: COLORS.primary,
+        color: COLORS.text,
     },
     headerTitle: {
-        fontSize: 16,
+        fontSize: 18,
         fontWeight: '700',
-        color: '#222',
+        color: COLORS.text,
     },
     badge: {
         backgroundColor: '#e8f5e9',
@@ -340,25 +340,32 @@ const styles = StyleSheet.create({
     },
 
     // Bottom Nav
-    bottomNav: {
+   bottomNav: {
         flexDirection: 'row',
-        backgroundColor: '#fff',
-        paddingVertical: 10,
+        justifyContent: 'space-around',
+        alignItems: 'center',
         borderTopWidth: 1,
         borderTopColor: '#eee',
+        paddingVertical: 10,
+        backgroundColor: '#fff',
     },
+
     navItem: {
-        flex: 1,
         alignItems: 'center',
     },
-    navIcon: { fontSize: 22 },
-    navLabel: {
-        fontSize: 10,
-        color: '#aaa',
-        marginTop: 2,
+
+    navIcon: {
+        fontSize: 20,
+        marginBottom: 4,
     },
+
+    navLabel: {
+        fontSize: 12,
+        color: '#666',
+    },
+
     navActive: {
         color: COLORS.primary,
-        fontWeight: '600',
+        fontWeight: '700',
     },
 });

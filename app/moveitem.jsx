@@ -138,20 +138,20 @@ export default function MoveItem(){
 }
 
 const styles = StyleSheet.create({
-    safeArea: { flex: 1, backgroundColor: '#f0f4f1' },
+    safeArea: { flex: 1, backgroundColor: '#fff' },
 
     // Header
     header: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: 16,
-        backgroundColor: '#fff',
+        paddingHorizontal: 16,
+        paddingVertical: 14,
         borderBottomWidth: 1,
         borderBottomColor: '#eee',
     },
-    backBtn: { fontSize: 28, color: COLORS.primary },
-    headerTitle: { fontSize: 16, fontWeight: '700', color: '#222' },
+    backBtn: { fontSize: 28, color: COLORS.text },
+    headerTitle: { fontSize: 18, fontWeight: '700', color: COLORS.text },
 
     content: {padding: 16, gap: 4 },
     // Alert box
@@ -231,15 +231,32 @@ const styles = StyleSheet.create({
     btnScanText: { color: '#fff', fontSize: 15, fontWeight: '800' },
 
     // Bottom nav
-    bottomNav: {
+bottomNav: {
         flexDirection: 'row',
-        backgroundColor: '#fff',
-        paddingVertical: 10,
+        justifyContent: 'space-around',
+        alignItems: 'center',
         borderTopWidth: 1,
         borderTopColor: '#eee',
+        paddingVertical: 10,
+        backgroundColor: '#fff',
     },
-    navItem: { flex: 1, alignItems: 'center' },
-    navIcon: { fontSize: 22 },
-    navLabel: { fontSize: 10, color: '#aaa', marginTop: 2 },
-    navActive: { color: COLORS.primary, fontWeight: '600' },
+
+    navItem: {
+        alignItems: 'center',
+    },
+
+    navIcon: {
+        fontSize: 20,
+        marginBottom: 4,
+    },
+
+    navLabel: {
+        fontSize: 12,
+        color: '#666',
+    },
+
+    navActive: {
+        color: COLORS.primary,
+        fontWeight: '700',
+    },
 });
