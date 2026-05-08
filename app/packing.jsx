@@ -115,9 +115,9 @@ export default function PackingScreen(){
                                 <Text style = {styles.navIcon}>🏠</Text>
                                 <Text style ={[styles.navLabel]}>Trang Chủ</Text>
                             </TouchableOpacity>
-                            <TouchableOpacity style ={styles.navItem}>
-                                <Text style = {styles.navIcon}>📦</Text>
-                                <Text style = {[styles.navLabel, styles.navActive]}>Đơn hàng</Text>
+                            <TouchableOpacity style ={styles.navItem}onPress={() => router.push('/team')} >
+                                <Text style = {styles.navIcon}>👥</Text>
+                                <Text style = {[styles.navLabel, styles.navActive]}>Nhóm</Text>
                             </TouchableOpacity>
                             <TouchableOpacity style={styles.navItem} onPress={() => router.push('/packing')}>
                                 <Text style ={styles.navIcon}>📷</Text>
