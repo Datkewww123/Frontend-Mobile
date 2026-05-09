@@ -88,6 +88,15 @@ export default function ProfileScreen (){
                         when="15/02/2026"
                     />
                </View>
+               {/* Xem năng suất của bản thân */}
+               <TouchableOpacity
+                    style={styles.productivityBtn}
+                    onPress={() => router.push('/productivity')}
+                >
+                    <Text style={styles.productivityBtnText}>
+                        📈 Xem năng suất của tôi
+                    </Text>
+                </TouchableOpacity>
                {/* Lịch sử picking */}
                {/* Nút lịch sử picking */}
                     <TouchableOpacity
@@ -319,5 +328,26 @@ historyBtnText: {
     fontSize: 14,
     fontWeight: '700',
     color: '#374151',
+},
+productivityBtn: {
+    marginHorizontal: 12,
+    marginTop: 12,
+
+    padding: 16,
+
+    backgroundColor: '#fff',
+
+    borderRadius: 16,
+
+    alignItems: 'center',
+
+    borderWidth: 1.5,
+    borderColor: '#d6e4ff',
+},
+
+productivityBtnText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: COLORS.primary,
 },
 });
