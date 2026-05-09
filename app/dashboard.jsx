@@ -155,7 +155,6 @@ export default function DashboardScreen(){
             </SafeAreaView>
 )}
 const styles = StyleSheet.create({
-
     // Màn hình tổng
     safeArea: {
         flex: 1,

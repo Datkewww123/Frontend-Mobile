@@ -97,6 +97,15 @@ export default function PackingScreen(){
                 onPress = {() => router.push('/scancontainer')} >
                     <Text style ={styles.btnPrimaryText}>Quét mã sản phẩm</Text>
                 </TouchableOpacity>
+                {/* Nút nhập tay sản phẩm */}
+                <TouchableOpacity
+                    style={styles.manualEntryBtn}
+                    onPress={() => router.push('/manualentry')}
+                >
+                    <Text style={styles.manualEntryText}>
+                        Nếu không thể quét mã? Hãy nhấn vào đây
+                    </Text>
+                </TouchableOpacity>
                 {/* Nút báo thiếu */}
                 <TouchableOpacity 
                 style ={styles.btnOutline}
@@ -119,7 +128,7 @@ export default function PackingScreen(){
                                 <Text style = {styles.navIcon}>👥</Text>
                                 <Text style = {[styles.navLabel, styles.navActive]}>Nhóm</Text>
                             </TouchableOpacity>
-                            <TouchableOpacity style={styles.navItem} onPress={() => router.push('/packing')}>
+                            <TouchableOpacity style={styles.navItem}>
                                 <Text style ={styles.navIcon}>📷</Text>
                                 <Text style ={[styles.navLabel, styles.navActive]}>Quét mã</Text>
                             </TouchableOpacity>
@@ -363,15 +372,38 @@ const styles = StyleSheet.create({
         color: COLORS.primary,
         fontWeight: '700',
     },
-    btnMap: {
+btnMap: {
+    flexDirection: 'row',
     alignItems: 'center',
-    padding: 10,
-    marginTop: 4,
-    marginBottom: 4,
+    justifyContent: 'center',
+
+    backgroundColor: '#eef4ff',
+
+    borderWidth: 1.5,
+    borderColor: '#d6e4ff',
+
+    borderRadius: 14,
+
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+
+    marginBottom: 16,
 },
 btnMapText: {
     fontSize: 13,
     color: COLORS.primary,
     fontWeight: '600',
+},
+manualEntryBtn: {
+    alignItems: 'center',
+    paddingVertical: 6,
+    marginBottom: 18,
+},
+
+manualEntryText: {
+    fontSize: 13,
+    color: COLORS.primary,
+    fontWeight: '600',
+    textDecorationLine: 'underline',
 },
 });
