@@ -1,5 +1,5 @@
 import {Text, TextInput, View, TouchableOpacity, StyleSheet, ScrollView, Switch} from 'react-native'
-import {useState} from 'react'
+import {useState, useEffect} from 'react'
 import{router} from 'expo-router'
 import {COLORS} from '../constants/colors'
 import  {SafeAreaView} from 'react-native-safe-area-context'
@@ -35,7 +35,13 @@ function InfoRow({label, value}){
     )
 }
 export default function SettingScreen(){
-    const { logout } = useAuth();
+    const { isLoggedIn, logout } = useAuth();
+
+    useEffect(() => {
+        if (!isLoggedIn) {
+            router.replace('/Login');
+        }
+    }, [isLoggedIn]);
     // Mỗi switch sẽ có 1 useState riêng
     const[beepSound, setBeepSound] = useState(true);
     const[vibrate, setVibrate] = useState(true);
@@ -104,7 +110,6 @@ export default function SettingScreen(){
                     style={styles.logoutBtn}
                     onPress={() => {
                         logout();
-                        router.replace('/Login');
                     }}
                 >
                     <Text style={styles.logoutText}> Đăng xuất</Text>

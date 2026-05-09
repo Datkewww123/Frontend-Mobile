@@ -33,7 +33,7 @@ function LayoutContent() {
                 }}
             />
 
-            {isLoggedIn && (
+            {isLoggedIn && !isLoginScreen && (
                 <FloatingAssistiveButton />
             )}
 

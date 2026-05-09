@@ -88,6 +88,25 @@ export default function ProfileScreen (){
                         when="15/02/2026"
                     />
                </View>
+               {/* Lịch sử picking */}
+               {/* Nút lịch sử picking */}
+                    <TouchableOpacity
+                        style={styles.historyBtn}
+                        onPress={() => router.push('/history')}
+                    >
+                        <Text style={styles.historyBtnText}>
+                            🕐 Lịch sử Picking
+                        </Text>
+                    </TouchableOpacity>
+               {/* Nút bàn giao ca */}
+                            <TouchableOpacity
+                    style={styles.handoverBtn}
+                    onPress={() => router.push('/handover')}
+                >
+                    <Text style={styles.handoverBtnText}>
+                        🤝 Bàn giao ca
+                    </Text>
+                </TouchableOpacity>
                {/* Nút tổng kết ca */}
                <TouchableOpacity 
                 style={styles.shiftBtn}
@@ -258,5 +277,47 @@ shiftBtnText: {
     fontSize: 14,
     fontWeight: '600',
     color: '#fff',
+},
+handoverBtn: {
+    marginHorizontal: 12,
+    marginTop: 12,
+
+    padding: 16,
+
+    backgroundColor: '#fff',
+
+    borderRadius: 16,
+
+    alignItems: 'center',
+
+    borderWidth: 1.5,
+    borderColor: '#dfe7df',
+},
+
+handoverBtnText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: COLORS.primary,
+},
+historyBtn: {
+    marginHorizontal: 12,
+    marginTop: 12,
+
+    padding: 16,
+
+    backgroundColor: '#fff',
+
+    borderRadius: 16,
+
+    alignItems: 'center',
+
+    borderWidth: 1.5,
+    borderColor: '#e5e7eb',
+},
+
+historyBtnText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#374151',
 },
 });
