@@ -54,11 +54,15 @@ export default function ScancontainerScreen(){
                 </View>
             </View>
             {/* Card thùng bin */}
-            <View style = {styles.binCard}>
+            <TouchableOpacity
+            style={styles.binCard}
+            activeOpacity={0.85}
+            onPress={() => router.push('/containeraudit')}
+>
                 <Text style = {styles.binLabel}>Bỏ hàng vào thùng</Text>
                 <Text style = {styles.binCode}>{scanData.binCode}</Text>
                 <Text style = {styles.binSub}>{scanData.qty} {scanData.unit} - Đơn {scanData.orderId} {scanData.client}</Text>
-            </View>
+            </TouchableOpacity>
             {/* Nút quét mã thùng */}
             <TouchableOpacity 
             style ={styles.btnPrimary}
