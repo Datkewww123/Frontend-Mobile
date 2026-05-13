@@ -12,7 +12,7 @@ from '../components/FloatingAssistiveButton';
 
 function LayoutContent() {
 
-    const { isLoggedIn } = useAuth();
+    const { isLoggedIn, userRole } = useAuth();
 
     const pathname = usePathname();
 
@@ -33,7 +33,7 @@ function LayoutContent() {
                 }}
             />
 
-            {isLoggedIn && !isLoginScreen && (
+            {isLoggedIn && !isLoginScreen && userRole === 'staff' && (
                 <FloatingAssistiveButton />
             )}
 
