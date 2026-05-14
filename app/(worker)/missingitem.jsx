@@ -1,12 +1,13 @@
 import {Text, View, ScrollView, TouchableOpacity,StyleSheet,Alert} from 'react-native';
 import {useState} from 'react'
 import {SafeAreaView} from 'react-native-safe-area-context';
-import {router} from 'expo-router';
+import {router, useLocalSearchParams} from 'expo-router';
 import {COLORS} from '../../constants/colors';
 import StaffBottomNav from '../../components/StaffBottomNav';
-import { LayoutAnimation } from 'react-native';
+import {reportIncident} from '../../constants/services/api';
 
-const reasons = [
+
+const reasons = [   
     {
         id: 'empty', icon:'📦' , label:'Kệ còn trống - hàng chưa được bổ sung'
     },
@@ -19,19 +20,33 @@ const reasons = [
 ]
 
 export default function MissingItemScreen(){
+        const params = useLocalSearchParams();
+        const itemId = params.itemId;
+        const [submitting, setSubmitting] = useState(false);
         const [photoTaken, setPhotoTaken] = useState(false);
         const [reason, setReason] = useState(null);
-        function handleSubmit(){
-            if(!photoTaken){
-                Alert.alert ('Vui lòng chụp màn hình chứng minh trước');
-                return;
-            }
-            if(!reason){
-                Alert.alert('Vui lòng chọn lí do thiếu hàng!');
-            }
-            Alert.alert('Báo cáo đã được gửi thành công');
-            router.back();
+       async function handleSubmit(){
+        if(!photoTaken){
+            Alert.alert('Lỗi!', 'Vui lòng chụp màn hình minh chứng trước');
+            return;
         }
+        if(!reason){
+            Alert.alert('Lỗi!', 'Vui lòng chọn lí do thiếu hàng');
+            return;
+        }
+        setSubmitting(true);
+        try{
+            await reportIncident(itemId, reason, '');
+                Alert.alert('Thành công!' ,'Báo cáo đã được gửi đi')
+                router.back();
+        }
+        catch(err){
+            Alert.alert('Lỗi', err.message || 'Không gửi được báo cáo');
+        }
+        finally{
+            setSubmitting(false)
+        }
+    }
         return (
         <SafeAreaView style = {styles.safeArea}>
             {/* Header */}
@@ -85,11 +100,15 @@ export default function MissingItemScreen(){
                     </TouchableOpacity>
                 ))}
             {/* Nút gửi báo cáo */}
-            <TouchableOpacity
-            style = {styles.btnSubmit}
-            onPress = {handleSubmit}>
-                <Text style = {styles.btnSubmitText}>Gửi báo cáo</Text>
-            </TouchableOpacity>
+                <TouchableOpacity
+                        style={[styles.btnSubmit, submitting && { opacity: 0.7 }]}
+                        onPress={handleSubmit}
+                        disabled={submitting}
+                    >
+                        <Text style={styles.btnSubmitText}>
+                            {submitting ? 'Đang gửi...' : '🚨 Gửi báo cáo & Chuyển tiếp'}
+                        </Text>
+                    </TouchableOpacity>
             </ScrollView>
             {/* Bottom nav */}
                 <StaffBottomNav />
@@ -123,13 +142,13 @@ const styles = StyleSheet.create({
         color: COLORS.text,
     },
     badge: {
-        backgroundColor: 'rgba(255,255,255,0.2)',
+        backgroundColor: '#e8f5e9',
         paddingHorizontal: 10,
         paddingVertical: 4,
         borderRadius: 20,
     },
     badgeText: {
-        color: '#fff',
+        color: COLORS.primary,
         fontSize: 12,
         fontWeight: '600',
     },
