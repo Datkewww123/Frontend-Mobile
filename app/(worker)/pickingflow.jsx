@@ -1,12 +1,14 @@
 import { useState, useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, TextInput, Animated, Alert } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
+import {packItem} from '../../constants/services/api'
 import { COLORS } from '../../constants/colors';
 import StaffBottomNav from '../../components/StaffBottomNav';
 
 const bins = ['BIN-401', 'BIN-402', 'BIN-403', 'BIN-404', 'BIN-405', 'BIN-406'];
 
 export default function PickingFlowScreen() {
+  const [submitting, setSubmitting] = useState(false);
   const params = useLocalSearchParams();
   const productIndex = parseInt((params.productIndex || '0'), 10);
   const totalProducts = parseInt((params.totalProducts || '1'), 10);
@@ -26,16 +28,6 @@ export default function PickingFlowScreen() {
 
   const scanAnim = useRef(new Animated.Value(1)).current;
   const flashAnim = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    if (scanned) {
-      Animated.sequence([
-        Animated.timing(flashAnim, { toValue: 1, duration: 200, useNativeDriver: true }),
-        Animated.timing(flashAnim, { toValue: 0, duration: 300, useNativeDriver: true }),
-      ]).start();
-    }
-  }, [scanned]);
-
   const simulateScan = () => {
     Animated.sequence([
       Animated.timing(scanAnim, { toValue: 0.3, duration: 100, useNativeDriver: true }),
@@ -68,24 +60,29 @@ export default function PickingFlowScreen() {
     }
   };
 
-  const handleArrived = () => {
-    setArrived(true);
-    const nextIndex = productIndex + 1;
-    if (nextIndex < totalProducts) {
-      // Còn sản phẩm tiếp theo -> chuyển đến sản phẩm sau
-      router.replace({
-        pathname: '/pickingflow',
-        params: { ...params, productIndex: String(nextIndex) },
-      });
-    } else {
-      // Đã xong tất cả -> quay lại productlist với flag completed
-      router.replace({
-        pathname: '/productlist',
-        params: { completed: 'true' },
-      });
+  const handleArrived = async () => {
+    setSubmitting(true);
+    try {
+        await packItem(productId, selectedBin, quantity);
+        // Gọi API thành công → chuyển sang item tiếp theo
+        const nextIndex = productIndex + 1;
+        if (nextIndex < totalProducts) {
+            router.replace({
+                pathname: '/pickingflow',
+                params: { ...params, productIndex: String(nextIndex) },
+            });
+        } else {
+            router.replace({
+                pathname: '/productlist',
+                params: { taskId: params.taskId, completed: 'true' },
+            });
+        }
+    } catch (err) {
+        Alert.alert('Lỗi', err.message || 'Không thể xác nhận pack hàng');
+    } finally {
+        setSubmitting(false);
     }
-  };
-
+};
   const renderStepIndicator = () => (
     <View style={styles.stepRow}>
       {[1, 2, 3, 4].map((s, i) => (
@@ -150,8 +147,14 @@ export default function PickingFlowScreen() {
                     value={barcode}
                     onChangeText={setBarcode}
                   />
-                  <TouchableOpacity style={styles.manualBtn} onPress={handleManualScan}>
-                    <Text style={styles.manualBtnText}>Xác nhận</Text>
+                 <TouchableOpacity
+                      style={[styles.manualBtn, submitting && { opacity: 0.7 }]}
+                      onPress={handleArrived}
+                      disabled={submitting}
+                  >
+                      <Text style={styles.manualBtnText}>
+                          {submitting ? 'Đang xác nhận...' : '✅ Xác nhận đã đến & pack hàng'}
+                      </Text>
                   </TouchableOpacity>
                 </View>
               </>
