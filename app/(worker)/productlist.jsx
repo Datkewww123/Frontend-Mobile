@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Text, View, TouchableOpacity, StyleSheet, FlatList, SafeAreaView, Alert } from 'react-native';
+import { Text, View, TouchableOpacity, StyleSheet, FlatList, SafeAreaView, Alert, ActivityIndicator } from 'react-native';
+import {getAssignedTasks} from '../../constants/services/api'
 import { COLORS } from '../../constants/colors';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useAuth } from '../../contexts/AuthContext';
@@ -14,15 +15,40 @@ const initialProducts = [
 ];
 
 export default function productListScreen() {
-  const [products, setProducts] = useState(initialProducts);
   const params = useLocalSearchParams();
+  const taskId = params.taskId;
+  const [loading, setLoading] = useState(true);
+  const [products, setProducts] = useState(initialProducts);
   const { userRole } = useAuth();
 
-  useEffect(() => {
-    if (params.completed === 'true') {
-      setProducts(prev => prev.map(p => ({ ...p, done: true })));
+  useEffect (() =>{
+    async function fetchItem() {
+      try{
+        const res = await getAssignedTasks();
+        // Tìm task theo ID để lấy item
+        const task = res.find(t => t.id === taskId);
+        if(task && task.items){
+          const mapped = task.items.map(item => ({
+            key : item._id,
+            location : item.location || '',
+            name : item.productName,
+            sku : item.sku,
+            qty : item.qty,
+            unit : item.unit || 'cái',
+            done : item.status === 'Xong'
+          }));
+          setProducts(mapped);
+        }
+      }
+      catch(err){
+        Alert.alert('Lỗi! không tải được danh sách sản phẩm')
+      }
+      finally {
+        setLoading(false);
+      }
     }
-  }, [params.completed]);
+    fetchItem();
+  }, [taskId]);
 
   const doneCount = products.filter(p => p.done).length;
   const remaining = products.length - doneCount;
@@ -106,15 +132,19 @@ export default function productListScreen() {
           <Text style={styles.zoneProgressLbl}>Đã lấy</Text>
         </View>
       </View>
-
-      {/* Product List */}
+      {loading ?(
+        <ActivityIndicator 
+        color = {COLORS.primary}
+        size = 'large'
+        style = {{marginTop : 40}} />
+      ):(
       <FlatList
         data={products}
-        keyExtractor={(item) => item.id.toString()}
+        keyExtractor={(item) => item.key}
         renderItem={renderItem}
         contentContainerStyle={styles.list}
       />
-
+      )}
       {/* Confirm Order Button */}
       {allDone && (
         <View style={styles.confirmBar}>
