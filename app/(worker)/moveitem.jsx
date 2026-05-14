@@ -4,6 +4,8 @@ import {useState} from 'react';
 import {router} from 'expo-router';
 import {COLORS} from '../../constants/colors';
 import StaffBottomNav from '../../components/StaffBottomNav';
+import {moveItem as apiMoveItem} from '../../constants/services/api'
+import {useLocalSearchParams} from 'expo-router';
 
 // tạo 1 component tái sử dụng
 function MoveStep ({number, label, value , status}) {
@@ -44,8 +46,13 @@ function MoveStep ({number, label, value , status}) {
         </View>
     );
 }
-
 export default function MoveItem(){
+        const params = useLocalSearchParams();
+    const [submitting, setSubmitting] = useState(false);
+        const fromContainer = params.fromContainer || 'BIN-401';
+    const toContainer = params.toContainer || 'BIN-402';
+    const itemId = params.itemId || '';
+
     // Hiện ra step hiện tại đang ở step mấy
     const [step, setStep] = useState(2);
     // Suy ra trạng thái dựa theo step
@@ -54,18 +61,32 @@ export default function MoveItem(){
         if(step === stepNum) return 'active';
         return 'todo';
     }
+    async function handleConfirm(){
+            setSubmitting(true);
+            try{
+                await apiMoveItem(itemId, fromContainer, toContainer);
+                Alert.alert('Thành công', 'Đã chuyển hành sang thùng mới');
+                router.back()
+            }
+            catch(err){
+                Alert.alert('Lỗi', err.message || 'Không thể chuyển hàng')
+            }
+            finally{
+                setSubmitting(false);
+            }
+           }
     // Giả lập quét MÃ
     function handleScan(){
         if(step < 3){
             setStep(prev => prev + 1);
         }
         else{
-            Alert.alert('Chuyển thùng thành công!');
-            router.back();
+         handleConfirm();
         }
     }
     // Nhân nút theo dõi Bước
     const btnLabel = step === 1 ?  '📷 Quét mã Sản phẩm' : step === 2  ? '📷 Quét mã Thùng CŨ'  : '📷 Quét mã Thùng MỚI';
+
     return (
         <SafeAreaView style = {styles.safeArea}>
             {/* Header */}
@@ -129,8 +150,8 @@ const styles = StyleSheet.create({
         borderBottomWidth: 1,
         borderBottomColor: '#eee',
     },
-    backBtn: { fontSize: 28, color: COLORS.text },
-    headerTitle: { fontSize: 18, fontWeight: '700', color: COLORS.text },
+    backBtn: { fontSize: 28, color: '#222' },
+    headerTitle: { fontSize: 18, fontWeight: '700', color: '#222' },
 
     content: {padding: 16, gap: 4 },
     // Alert box
