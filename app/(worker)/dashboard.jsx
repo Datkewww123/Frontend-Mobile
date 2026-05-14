@@ -5,13 +5,54 @@ import{
     TouchableOpacity,
     StyleSheet,
     SafeAreaView,
-    ScrollView,
+    Alert,
 } from 'react-native';
 import {COLORS} from '../../constants/colors'
+import {useState, useEffect} from 'react'
 import StaffBottomNav from '../../components/StaffBottomNav'
 import { useAuth } from '../../contexts/AuthContext'
+import {ActivityIndicator} from 'react-native'
+import {getAssignedTasks} from '../../constants/services/api' 
+
+
 export default function DashboardScreen(){
-  const { assignedZone, userName } = useAuth();
+    // thêm 1 số components để fetch
+    const {userName, userRole, assignedZone} = useAuth();
+    const [tasks, setTasks] = useState([]);
+    const [loading, setLoading] = useState(true);
+    useEffect(() =>{
+        async function fetchTasks() {
+            try{
+                const res = await getAssignedTasks();
+                // res = [{ _id, orderId, storeName, items, status, pickedCount, totalCount }]
+                setTasks(res);
+            }
+            catch (err){
+                Alert.alert('Lỗi! Không tải được danh sách đơn hàng');
+            }
+            finally { // dù có fetch thành công hay thất bại thì phải luôn tắt biểu tượng loading
+                setLoading(false);
+            }
+        }
+        fetchTasks();
+    }, []);
+    // Tính % task hoàn thành
+    const getPct = (task) =>{
+        if(!task.totalCount) return 0
+        return Math.round((task.pickedCount / task.totalCount) * 100)
+    }
+    // Helper: lấy style trạng thái
+    const getStatusStyle = (status) =>{
+        if(status === 'completed') return styles.statusGreen;
+        if(status === 'in_progress') return styles.statusOrange;
+        return styles.statusGray;
+    };
+    // lấy label cho từng trạng tháy
+    const getStatusLabel = (status) =>{
+         if(status === 'completed') return 'Xong';
+         if(status === 'in_progress') return 'Đang làm'
+         return 'Chờ';
+    }
     return(
        <SafeAreaView style={styles.safeArea}>
             {/* PHẦN 1: BANNER CA LÀM VIỆC */}
@@ -29,97 +70,43 @@ export default function DashboardScreen(){
                     </View>
                 </View>
                 {/* 3 chỉ số KPI */}
-                <View style={styles.kpiRow}>
-                    <View style={styles.kpiItem}>
-                        <Text style={styles.kpiValue}>12</Text>
-                        <Text style={styles.kpiLabel}>Đơn hàng</Text>
-                    </View>
-                    <View style={styles.kpiDivider}/>
-                    <View style={styles.kpiItem}>
-                        <Text style={styles.kpiValue}>89%</Text>
-                        <Text style={styles.kpiLabel}>Hoàn thành</Text>
-                    </View>
-                    <View style={styles.kpiDivider}/>
-                    <View style={styles.kpiItem}>
-                        <Text style={styles.kpiValue}>45</Text>
-                        <Text style={styles.kpiLabel}>SKU/h</Text>
-                    </View>
+            {loading ? (
+                <ActivityIndicator color ='#fff' style = {{marginTop: 20}} />
+            ): tasks.length === 0 ? (
+                <Text style = {{color : '#fff', textAlign: 'center', marginTop : 16}}>
+                    Không có đơn hàng vào ngày hôm nay
+                </Text>
+            ):(
+        tasks.map((task) => (
+        <TouchableOpacity
+            key={task._id}
+            style={styles.orderCard}
+            onPress={() => router.push({
+                pathname: '/productlist',
+                params: { taskId: task._id, orderId: task.orderId }
+            })}
+        >
+            <View style={styles.orderHead}>
+                <View>
+                    <Text style={styles.orderId}>#{task.orderId}</Text>
+                    <Text style={styles.orderStore}>{task.storeName}</Text>
                 </View>
+                <View style={[styles.statusTag, getStatusStyle(task.status)]}>
+                    <Text style={styles.statusText}>{getStatusLabel(task.status)}</Text>
+                </View>
+            </View>
+            <View style={styles.orderFooter}>
+                <Text style={styles.skuText}>{task.pickedCount}/{task.totalCount} SKU</Text>
+                <View style={styles.progressBar}>
+                    <View style={[styles.progressFill, { width: `${getPct(task)}%` }]} />
+                </View>
+                <Text style={styles.pctText}>{getPct(task)}%</Text>
+            </View>
+        </TouchableOpacity>
+    ))
+)}
 
             </View>
-            {/* PHẦN 2: DANH SÁCH ĐƠN HÀNG */}
-            <ScrollView style={styles.scroll}>
-                <Text style={styles.sectionTitle}>📦 Đơn hàng hôm nay</Text>
-
-                {/* Đơn hàng 1 - Đang làm */}
-                <TouchableOpacity 
-                    style={styles.orderCard}
-                    onPress={() => router.push('/productlist')}>
-                    <View style={styles.orderHead}>
-                        <View>
-                            <Text style={styles.orderId}>#KF-12345</Text>
-                            <Text style={styles.orderStore}>Kingfood Nguyễn Văn Linh, Q.7</Text>
-                        </View>
-                        <View style={[styles.statusTag, styles.statusOrange]}>
-                            <Text style={styles.statusText}>Đang làm</Text>
-                        </View>
-                    </View>
-                    <View style={styles.orderFooter}>
-                        <Text style={styles.skuText}>45/52 SKU</Text>
-                        <View style={styles.progressBar}>
-                            <View style={[styles.progressFill, { width: '87%' }]}/>
-                        </View>
-                        <Text style={styles.pctText}>87%</Text>
-                    </View>
-                </TouchableOpacity>
-
-                {/* Đơn hàng 2 - Xong */}
-               <TouchableOpacity 
-                        style={styles.orderCard}
-                        onPress={() => router.push('/productlist')}
-                    >
-                    <View style={styles.orderHead}>
-                        <View>
-                            <Text style={styles.orderId}>#KF-12346</Text>
-                            <Text style={styles.orderStore}>Kingfood Đinh Tiên Hoàng, Q.1</Text>
-                        </View>
-                        <View style={[styles.statusTag, styles.statusGreen]}>
-                            <Text style={styles.statusText}>Xong</Text>
-                        </View>
-                    </View>
-                    <View style={styles.orderFooter}>
-                        <Text style={styles.skuText}>38/38 SKU</Text>
-                        <View style={styles.progressBar}>
-                            <View style={[styles.progressFill, { width: '100%', backgroundColor: COLORS.accent }]}/>
-                        </View>
-                        <Text style={styles.pctText}>100%</Text>
-                    </View>
-                </TouchableOpacity>
-
-                {/* Đơn hàng 3 - Chờ */}
-               <TouchableOpacity 
-                        style={styles.orderCard}
-                        onPress={() => router.push('/productlist')}
-                    >
-                    <View style={styles.orderHead}>
-                        <View>
-                            <Text style={styles.orderId}>#KF-12347</Text>
-                            <Text style={styles.orderStore}>Kingfood Lê Văn Việt, Q.9</Text>
-                        </View>
-                        <View style={[styles.statusTag, styles.statusGray]}>
-                            <Text style={styles.statusText}>Chờ</Text>
-                        </View>
-                    </View>
-                    <View style={styles.orderFooter}>
-                        <Text style={styles.skuText}>0/44 SKU</Text>
-                        <View style={styles.progressBar}>
-                            <View style={[styles.progressFill, { width: '0%' }]}/>
-                        </View>
-                        <Text style={[styles.pctText, { color: '#aaa' }]}>0%</Text>
-                    </View>
-                </TouchableOpacity>
-
-            </ScrollView>
             <StaffBottomNav />
             
             </SafeAreaView>
