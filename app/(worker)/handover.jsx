@@ -1,9 +1,10 @@
-import {Text, View, StyleSheet, ScrollView, TouchableOpacity} from 'react-native';
+import {Text, View, StyleSheet, ScrollView, TouchableOpacity, Alert} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {router} from 'expo-router';
 import {COLORS} from '../../constants/colors';
 import StaffBottomNav from '../../components/StaffBottomNav';
-
+import {handoverTask} from '../../constants/services/api';
+import {useState} from 'react';
 // Mockdata ghi chú bàn giao
 const notes = [
      {
@@ -78,6 +79,23 @@ function StatItem({ label, value, color }) {
     );
 }
 export default function HandOverScreen(){
+    const [submitting, setSubmitting] = useState(false);
+
+    const handleHandover = async () => {
+        setSubmitting(true);
+        try {
+            await handoverTask({
+                notes: notes.map(n => n.text),
+            });
+            Alert.alert('✅ Thành công', 'Bàn giao ca thành công');
+            router.replace('/(worker)/dashboard');
+        } catch (err) {
+            Alert.alert('Lỗi', err.message || 'Không thể bàn giao ca');
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
     return (
         <SafeAreaView style = {styles.safeArea}>
             {/* Header */}
@@ -139,9 +157,10 @@ export default function HandOverScreen(){
                     </View>
                     {/* Nút xác nhận nhận ca */}
                     <TouchableOpacity 
-                    style = {styles.btnConfirm}
-                    onPress={() => router.replace('/dashboard')}>
-                        <Text style = {styles.btnConfirmText}>Xác nhận đã đọc & Nhận ca</Text>
+                    style = {[styles.btnConfirm, submitting && { opacity: 0.7 }]}
+                    onPress={handleHandover}
+                    disabled={submitting}>
+                        <Text style = {styles.btnConfirmText}>{submitting ? 'Đang xử lý...' : 'Xác nhận đã đọc & Nhận ca'}</Text>
                     </TouchableOpacity>
             </ScrollView>
         <StaffBottomNav />
