@@ -156,11 +156,14 @@ export default function HandOverScreen(){
                         ))}
                     </View>
                     {/* Nút xác nhận nhận ca */}
-                    <TouchableOpacity 
-                    style = {[styles.btnConfirm, submitting && { opacity: 0.7 }]}
-                    onPress={handleHandover}
-                    disabled={submitting}>
-                        <Text style = {styles.btnConfirmText}>{submitting ? 'Đang xử lý...' : 'Xác nhận đã đọc & Nhận ca'}</Text>
+                    <TouchableOpacity
+                        style={[styles.btnHandover, submitting && { opacity: 0.7 }]}
+                        onPress={handleHandover}
+                        disabled={submitting}
+                    >
+                        <Text style={styles.btnHandoverText}>
+                            {submitting ? 'Đang bàn giao...' : '✅ Xác nhận bàn giao ca'}
+                        </Text>
                     </TouchableOpacity>
             </ScrollView>
         <StaffBottomNav />
@@ -327,15 +330,14 @@ scrollContent: {
         color: '#555',
     },
 
-    // Nút xác nhận
-    btnConfirm: {
+    btnHandover: {
         backgroundColor: COLORS.primary,
         borderRadius: 16,
         padding: 18,
         alignItems: 'center',
         marginBottom: 24,
     },
-    btnConfirmText: {
+    btnHandoverText: {
         color: '#fff',
         fontSize: 15,
         fontWeight: '800',
