@@ -25,10 +25,10 @@ export default function DashboardScreen(){
             try{
                 const res = await getAssignedTasks();
                 // res = [{ _id, orderId, storeName, items, status, pickedCount, totalCount }]
-                setTasks(res);
+                setTasks(Array.isArray(res) ? res : []);
             }
             catch (err){
-                Alert.alert('Lỗi! Không tải được danh sách đơn hàng');
+                Alert.alert('Lỗi!', 'Không tải được danh sách đơn hàng');
             }
             finally { // dù có fetch thành công hay thất bại thì phải luôn tắt biểu tượng loading
                 setLoading(false);
@@ -71,19 +71,19 @@ export default function DashboardScreen(){
                 </View>
                 {/* 3 chỉ số KPI */}
             {loading ? (
-                <ActivityIndicator color ='#fff' style = {{marginTop: 20}} />
-            ): tasks.length === 0 ? (
-                <Text style = {{color : '#fff', textAlign: 'center', marginTop : 16}}>
-                    Không có đơn hàng vào ngày hôm nay
-                </Text>
-            ):(
-        tasks.map((task) => (
+    <ActivityIndicator color="#fff" style={{ marginTop: 20 }} />
+) : tasks.length === 0 ? (
+    <Text style={{ color: 'rgba(255,255,255,0.7)', textAlign: 'center', marginTop: 16 }}>
+        Không có đơn hàng hôm nay
+    </Text>
+) : (
+    tasks.map((task) => (
         <TouchableOpacity
             key={task._id}
             style={styles.orderCard}
             onPress={() => router.push({
-                pathname: '/productlist',
-                params: { taskId: task._id, orderId: task.orderId }
+                pathname: '/(worker)/productlist',
+                params: { taskId: task._id }
             })}
         >
             <View style={styles.orderHead}>
@@ -96,7 +96,9 @@ export default function DashboardScreen(){
                 </View>
             </View>
             <View style={styles.orderFooter}>
-                <Text style={styles.skuText}>{task.pickedCount}/{task.totalCount} SKU</Text>
+                <Text style={styles.skuText}>
+                    {task.pickedCount}/{task.totalCount} SKU
+                </Text>
                 <View style={styles.progressBar}>
                     <View style={[styles.progressFill, { width: `${getPct(task)}%` }]} />
                 </View>
@@ -105,7 +107,6 @@ export default function DashboardScreen(){
         </TouchableOpacity>
     ))
 )}
-
             </View>
             <StaffBottomNav />
             

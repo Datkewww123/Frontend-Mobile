@@ -1,9 +1,10 @@
-import {Text, View, StyleSheet, ScrollView,TouchableOpacity} from 'react-native'
+import {Text, View, StyleSheet, ScrollView,TouchableOpacity, Alert, ActivityIndicator} from 'react-native'
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {router} from 'expo-router';
 import {COLORS} from '../../constants/colors';
 import StaffBottomNav from '../../components/StaffBottomNav';
-
+import {useEffect, useState} from 'react';
+import {getAssignedTasks} from '../../constants/services/api';
 // Mockdata
 const shiftStart = {
     score: 87,
@@ -13,7 +14,7 @@ const shiftStart = {
     pendingOrders: 3,
     missingReports: 5,
 }
-
+ 
 // Tạo mảng lưu trữ các phase
 const orders = [
     {
@@ -34,7 +35,7 @@ const orders = [
 function StatBox ({value, label, valueColor}){
     return (
         <View style = {styles.statBox}>
-            <Text style = {styles.statValue, valueColor && {color: valueColor}}>{value}</Text>
+            <Text style = {[styles.statValue, valueColor && {color: valueColor}]}>{value}</Text>
             <Text style = {styles.statLabel}>{label}</Text>
         </View>
     );
@@ -70,6 +71,43 @@ function OrderRow({order}){
 }
 
 export default function EndShiftScreen(){
+    const [apiStats, setApiStats] = useState(null)
+    const [loading, setLoading] = useState(true)
+    const displayStats = apiStats || shiftStart;
+    useEffect (() =>{
+        async function fetchShift(){
+            try{
+                const res = await getAssignedTasks();
+                const tasks = Array.isArray(res) ? res : [];
+                const totalSku = tasks.reduce((sum, t) => sum + (t.pickedCount || 0), 0);
+                const totalItems = tasks.reduce((sum, t) => sum + (t.totalCount ||0), 0);
+                const pct = totalItems > 0 ? Math.round((totalSku / totalItems) * 100) : 0;
+                setApiStats ({
+                    score: pct,
+                    skuPicked: totalSku,
+                    pendingOrders: tasks.filter(t => t.status !== 'completed').length,
+                });
+            }
+            catch(err){
+                // Giữ shiftmock nếu lỗi
+            }
+            finally{
+                setLoading(false)
+            }
+        }
+        fetchShift()
+    }, []);
+    if (loading) {
+        return (
+            <SafeAreaView style={styles.safeArea}>
+                <View style={styles.loadingContainer}>
+                    <ActivityIndicator color={COLORS.primary} size="large" />
+                    <Text style={styles.loadingText}>Đang tổng kết ca...</Text>
+                </View>
+            </SafeAreaView>
+        );
+    }
+
     return(
         <SafeAreaView style = {styles.safeArea}>
             {/* Header */}
@@ -88,7 +126,7 @@ export default function EndShiftScreen(){
             <ScrollView style = {styles.scroll}>
                 {/* Score Card */}
                 <View style = {styles.scoreCard}>
-                    <Text style = {styles.scoreValue}>{shiftStart.score}</Text>
+                    <Text style = {styles.scoreValue}>{displayStats.score}</Text>
                     <Text style = {styles.scoreLabel}>Điểm năng suất tối đa</Text>
                     <Text style = {styles.scoreDiff}>{shiftStart.scoreDiff}</Text>
                 </View>
@@ -96,9 +134,9 @@ export default function EndShiftScreen(){
                 <View style = {styles.card}>
                     <Text style = {styles.cardTitle}>Tổng quan</Text>
                     <View style = {styles.statGrid}>
-                        <StatBox value = {shiftStart.skuPicked} label = 'SKU đã pick' />
+                        <StatBox value = {displayStats.skuPicked} label = 'SKU đã pick' />
                         <StatBox value = {shiftStart.workHours} label = 'Thời gian làm' valueColor='#1976d2' />
-                        <StatBox value = {shiftStart.pendingOrders} label = 'Đơn chưa xong' valueColor = {COLORS.warning} />
+                        <StatBox value = {displayStats.pendingOrders} label = 'Đơn chưa xong' valueColor = {COLORS.warning} />
                         <StatBox value = {shiftStart.missingReports} label = 'Báo thiếu hàng' valueColor = {COLORS.warning} />
                     </View>
                 </View>
@@ -159,6 +197,12 @@ const styles = StyleSheet.create({
     },
 
     scroll: { flex: 1, padding: 16 },
+    loadingContainer: {
+        flex: 1, justifyContent: 'center', alignItems: 'center',
+    },
+    loadingText: {
+        marginTop: 12, fontSize: 14, color: '#888',
+    },
 
     // Score Card
     scoreCard: {
