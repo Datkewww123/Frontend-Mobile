@@ -1,10 +1,11 @@
 import { View, Text, StyleSheet,
-         SectionList, TouchableOpacity } from 'react-native';
+         SectionList, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { COLORS } from '../../constants/colors';
 import StaffBottomNav from '../../components/StaffBottomNav';
+import {getAssignedTasks} from '../../constants/services/api';
 
 // Filter tags
 const filters = [
@@ -78,13 +79,54 @@ function HistoryItem({ item }) {
 }
 
 export default function HistoryScreen(){
+        const [apiSections, setApiSections] = useState([]);
+    const [loading, setLoading] = useState(true);
+    useEffect (() => {
+        async function fetchHistory(){
+            try {
+                const res = await getAssignedTasks(); // gọi API
+                const tasks = Array.isArray(res) ? res : []; // kiểm tra xem dữ liệu có phải mảng k 
+                const grouped = {}; // tạo object để theo nhóm ngày
+                tasks.forEach(task => { // duyệt từng task 
+                    const date = task.date ? new Date(task.date).toLocaleDateString('vi-VN') : 'Hôm nay'; // xử lí ngày nếu task có date, hàm toLocal... dùng để format theo kiểu VN
+                    if(!grouped[date]) grouped[date] = []; // nếu chưa tồn tại ngày thì tạo mảng 
+                    grouped[date].push({
+                        id : task._id,
+                        time: task.updatedAt ? new Date(task.updatedAt).toLocaleTimeString('vi-VN', {hour: '2-digit', minute: '2-digit'}): '',
+                        icon: task.status === 'completed' ? '📦' :'📦',
+                        type : 'pick',
+                        sub: `${task.pickedCount} / ${task.totalCount} SKU`,
+                        status: task.status === 'completed' ? 'ok' : 'skip',
+                        statusLabel: task.status === 'completed' ? '✓ OK' : 'Đang làm',
+                    });
+                });
+                if(Object.keys(grouped).length > 0 ){
+                    setApiSections (
+                        Object.entries(grouped).map(([title, data]) => ({
+                             title: `📅 ${title}`,
+                             data
+                        }))
+                    );
+                }
+            }
+            catch (err){
+                // Giữ allHistory mock nếu lỗi 
+            }
+            finally {
+                setLoading(false)
+            }
+        }
+        fetchHistory();
+    }, []);
     // Khi nhấn tag nào thì chỉ hiện những item thuộc loại đó. Đây là pattern active filter dùng
     const [filter, setFilter] = useState('all')
+    // Dùng data từ API, fallback về mock nếu lỗi
+    const sourceData = apiSections.length > 0 ? apiSections : allHistory;
     // Lọc data theo filter đang chọn
-    const filteredSections = allHistory.map((section) =>({
-        ...section, // giữ nguyên title
-        data: filter === 'all' ? section.data : section.data.filter((item) => item.type === filter),  // lọc data
-    })).filter((section) => section.data.length > 0); // bỏ section rỗng
+    const filteredSections = sourceData.map((section) =>({
+        ...section,
+        data: filter === 'all' ? section.data : section.data.filter((item) => item.type === filter),
+    })).filter((section) => section.data.length > 0);
     return (
         <SafeAreaView style = {styles.safeArea}>
             {/* header */}
@@ -108,6 +150,9 @@ export default function HistoryScreen(){
                 ))}
             </View>
             {/* Danh sách lịch sử */}
+            {loading ? (
+                <ActivityIndicator color={COLORS.primary} size="large" style={{ marginTop: 40 }} />
+                ) : (   
                 <SectionList
                 sections = {filteredSections}
                 keyExtractor={(item) => item.id}
@@ -123,6 +168,7 @@ export default function HistoryScreen(){
                     </View>
                 }
                 />
+            )}
         <StaffBottomNav />
         </SafeAreaView>
     );
