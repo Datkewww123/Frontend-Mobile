@@ -1,5 +1,8 @@
 import {Text, View, SectionList, StyleSheet, TouchableOpacity} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
+import {useState, useEffect} from 'react';
+import {ActivityIndicator, Alert} from 'react-native';
+import {getIncidents} from '../../constants/services/api'
 import {router, usePathname} from 'expo-router';
 import {COLORS} from '../../constants/colors';
 import StaffBottomNav from '../../components/StaffBottomNav';
@@ -87,6 +90,50 @@ function NotifItem({item}){
 }
 
 export default function NotificationScreen(){
+    const [apiSections, setApiSections] = useState([]);
+    const [loading, setLoading] = useState(true);
+    useEffect(() =>{
+        async function fetchNotification(){
+            try{
+            const res = await getIncidents();
+            const incidents = Array.isArray(res) ? res : [];
+            const newOnes = incidents
+            .filter(i => i.status !== 'resolved')
+            .map(i => ({
+                id: i._id,
+                icon: '⚠️', iconBg: '#fff3e0',
+                title: `Sự cố ${i.type || 'Thiếu hàng'}`,
+                message: i.note || i.detail || ' ',
+                time: i.createAt ? new Date(i.createAt).toLocaleTimeString('vi-VN') : ' ',
+                unread: true,
+            }));
+            const old = incidents
+            .filter(i => i.status === 'resolved')
+            .map(i => ({
+                id: i._id,
+                icon: '✅', iconBg: '#e8f5e9',
+                title: `Đã xử lí ${i.type || ' '}`,
+                message: i.note || '',
+                time: i.updatedAt ? new Date(i.updatedAt).toLocaleTimeString('vi-VN') : ' ',
+                unread: false
+            }));
+            if(newOnes.length > 0 || old.length > 0){
+                setApiSections([
+                    { title: '🔔 Mới nhất', data: newOnes },
+                    { title: '📋 Trước đó', data: old },
+                ]);
+            }
+        } catch (err){
+            //  giữ mockdata nếu lõi
+        } finally {
+            setLoading(false);
+        }
+    }
+        fetchNotification();
+    }, []);
+    const displaySections = apiSections.length > 0 ? apiSections : sections;
+    const unreadCount = displaySections.reduce((sum, sec) => sum + sec.data.filter(i => i.unread).length, 0);
+
     return(
         <SafeAreaView style = {styles.safeArea}>
             {/* Header */}
@@ -96,12 +143,12 @@ export default function NotificationScreen(){
                      </TouchableOpacity>
                     <Text style = {styles.headerTitle}>Thông báo</Text>
                     <View style = {styles.badge}>
-                        <Text style = {styles.badgeText}>3 mới</Text>
+                        <Text style = {styles.badgeText}>{unreadCount} mới</Text>
                     </View>
             </View>
             {/* Danh sách thông báo */}
                        <SectionList
-                sections={sections}
+                sections={displaySections}
                 keyExtractor={(item) => item.id}
                 renderItem={({ item }) => <NotifItem item={item} />}
                 renderSectionHeader={({ section }) => (
