@@ -75,17 +75,14 @@ export default function MoveItem(){
                 setSubmitting(false);
             }
            }
-    // Giả lập quét MÃ
     function handleScan(){
         if(step < 3){
             setStep(prev => prev + 1);
-        }
-        else{
-         handleConfirm();
+        } else if(step === 3){
+            setStep(4);
         }
     }
-    // Nhân nút theo dõi Bước
-    const btnLabel = step === 1 ?  '📷 Quét mã Sản phẩm' : step === 2  ? '📷 Quét mã Thùng CŨ'  : '📷 Quét mã Thùng MỚI';
+    const btnLabel = step === 1 ? '📷 Quét mã Sản phẩm' : step === 2 ? '📷 Quét mã Thùng CŨ' : '📷 Quét mã Thùng MỚI';
 
     return (
         <SafeAreaView style = {styles.safeArea}>
@@ -124,12 +121,24 @@ export default function MoveItem(){
                         </Text>
                     </View>
                 </View>
-                {/* Nút quét cố định nằm dưới*/}
-                <TouchableOpacity 
-                style = {styles.btnScan}
-                onPress = {handleScan} >
-                <Text style = {styles.btnScanText}>{btnLabel}</Text>
-                </TouchableOpacity>
+                {step < 4 ? (
+                    <TouchableOpacity
+                        style={styles.btnScan}
+                        onPress={handleScan}
+                    >
+                        <Text style={styles.btnScanText}>{btnLabel}</Text>
+                    </TouchableOpacity>
+                ) : (
+                    <TouchableOpacity
+                        style={[styles.btnConfirm, submitting && { opacity: 0.7 }]}
+                        onPress={handleConfirm}
+                        disabled={submitting}
+                    >
+                        <Text style={styles.btnConfirmText}>
+                            {submitting ? 'Đang xử lý...' : '✅ Xác nhận chuyển thùng'}
+                        </Text>
+                    </TouchableOpacity>
+                )}
             </ScrollView>
             {/* Bottom nav */}
             <StaffBottomNav />
@@ -230,4 +239,12 @@ const styles = StyleSheet.create({
     },
     btnScanText: { color: '#fff', fontSize: 15, fontWeight: '800' },
 
+    btnConfirm: {
+        backgroundColor: COLORS.primary,
+        margin: 16, marginTop: 8,
+        borderRadius: 14,
+        padding: 18,
+        alignItems: 'center',
+    },
+    btnConfirmText: { color: '#fff', fontSize: 15, fontWeight: '800' },
 });
