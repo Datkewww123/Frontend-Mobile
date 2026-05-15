@@ -18,7 +18,7 @@ export default function productListScreen() {
   const params = useLocalSearchParams();
   const taskId = params.taskId;
   const [loading, setLoading] = useState(true);
-  const [products, setProducts] = useState(initialProducts);
+  const [products, setProducts] = useState([]);
   const { userRole } = useAuth();
 
   useEffect (() =>{
@@ -26,14 +26,14 @@ export default function productListScreen() {
       try{
         const res = await getAssignedTasks();
         // Tìm task theo ID để lấy item
-        const task = res.find(t => t.id === taskId);
+        const task = Array.isArray(res) ? res.find(t => t._id === taskId || t.id === taskId) : null;
         if(task && task.items){
           const mapped = task.items.map(item => ({
-            key : item._id,
+            id : item._id,
             location : item.location || '',
             name : item.productName,
             sku : item.sku,
-            qty : item.qty,
+            qty : item.qty || item.quantity || 1,
             unit : item.unit || 'cái',
             done : item.status === 'Xong'
           }));
@@ -102,6 +102,17 @@ export default function productListScreen() {
             <Text style={styles.qtyValue}>{item.done ? '✓' : item.qty}</Text>
             <Text style={styles.qtyUnit}>{item.unit}</Text>
           </View>
+          <TouchableOpacity
+            style={styles.reportBtn}
+            onPress={() =>
+              router.push({
+                pathname: '/(worker)/missingitem',
+                params: { itemId: item.id },
+              })
+            }
+          >
+            <Text style={styles.reportBtnText}>Báo thiếu</Text>
+          </TouchableOpacity>
         </View>
       </TouchableOpacity>
     );
@@ -132,12 +143,13 @@ export default function productListScreen() {
           <Text style={styles.zoneProgressLbl}>Đã lấy</Text>
         </View>
       </View>
-      {loading ?(
-        <ActivityIndicator 
-        color = {COLORS.primary}
-        size = 'large'
-        style = {{marginTop : 40}} />
-      ):(
+      {loading ? (
+            <ActivityIndicator color={COLORS.primary} size="large" style={{ marginTop: 40 }} />
+        ) : products.length === 0 ? (
+            <Text style={{ textAlign: 'center', marginTop: 40, color: '#888' }}>
+                Không có sản phẩm nào
+            </Text>
+        ) : (
       <FlatList
         data={products}
         keyExtractor={(item) => item.key}
@@ -207,4 +219,8 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary, borderRadius: 14, padding: 16, alignItems: 'center',
   },
   confirmBtnText: { color: '#fff', fontSize: 15, fontWeight: '800' },
+  reportBtn: {
+    backgroundColor: '#e53935', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6,
+  },
+  reportBtnText: { color: '#fff', fontSize: 11, fontWeight: '700' },
 });
