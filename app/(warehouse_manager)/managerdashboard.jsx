@@ -1,7 +1,9 @@
 import { View, Text, StyleSheet,
-         ScrollView, TouchableOpacity } from 'react-native';
+         ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import {useState, useEffect} from 'react';
+import {getDashboardStats, getIncidents} from '../../constants/services/api'
 import { COLORS } from '../../constants/colors';
 
 // 4 KPI cards
@@ -66,8 +68,55 @@ function ShortageItem({item}){
         </View>
     );
 }
-
 export default function ManagerDashboardScreen(){
+    const [stats, setStats] = useState(null);
+    const [incidents, setIncidents] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const displayKpis = stats ? [
+        { icon: '✅', value: String(stats.totalPickedSku || 0),
+          label: 'SKU đã pick', color: COLORS.successBg, textColor: COLORS.primary },
+        { icon: '👥', value: `${stats.activeWorkers || 0}/${stats.totalWorkers || 0}`,
+          label: 'NV đang làm', color: '#e3f2fd', textColor: '#1565c0' },
+        { icon: '⚠️', value: String(incidents.length),
+          label: 'Báo thiếu', color: COLORS.warningBg, textColor: '#e65100' },
+        { icon: '📦', value: String(stats.pendingOrders || 0),
+          label: 'Đơn tồn', color: '#f3e5f5', textColor: '#7b1fa2' },
+    ] : kpis;
+    const displayShortages = incidents.length > 0
+    ? incidents.slice(0, 3).map(inc => ({
+        id: inc._id,
+        icon: '⚠️',
+        name: inc.productName || 'Sản phẩm',
+        loc: inc.location || '',
+        who: `${inc.reportedBy || ''} · ${inc.time || ''}`,
+    }))
+    : shortages
+    useEffect(() => {
+        async function fetchAll(){
+            try{
+            const [statsRes, incidentsRes] = await Promise.all([
+                getDashboardStats(),
+                getIncidents(),
+            ]);
+            setStats(statsRes);
+            setIncidents(Array.isArray(incidentsRes) ? incidentsRes: [] );
+        }
+        catch (err){
+            Alert.alert('Lỗi', 'Không tải được dữ liệu');
+        }
+        finally {
+            setLoading(false)
+        }
+    }
+        fetchAll()
+    }, []);
+    if (loading) {
+        return (
+            <SafeAreaView style={styles.safeArea}>
+                <ActivityIndicator color={COLORS.primary} size="large" style={{ marginTop: 60 }} />
+            </SafeAreaView>
+        );
+    }
     return(
         <SafeAreaView style={styles.safeArea}>
 
@@ -87,7 +136,7 @@ export default function ManagerDashboardScreen(){
             <ScrollView style = {styles.scroll}>
                 {/* 4 thẻ card 2x2 */}
                 <View style = {styles.kpiGrid}>
-                    {kpis.map((item, index) => (
+                    {displayKpis.map((item, index) => (
                         <KpiCard key = {index}  item = {item} />
                     ))}
                     </View>
@@ -110,7 +159,7 @@ export default function ManagerDashboardScreen(){
                 {/* Sản phẩm còn thiếu */}
                 <View style = {styles.card}>
                     <Text style = {styles.cardTitle}>Sản phẩm còn đang thiếu</Text>
-                    {shortages.map((item) => (
+                    {displayShortages.map((item) => (
                         <ShortageItem key = {item.id} item = {item} />
                     ))}
                 </View>
