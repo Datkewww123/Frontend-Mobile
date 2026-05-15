@@ -61,21 +61,22 @@ export default function PickingFlowScreen() {
   };
 
   const handleArrived = async () => {
+    if (!selectedBin) {
+        Alert.alert('Lỗi', 'Vui lòng chọn bin');
+        return;
+    }
     setSubmitting(true);
     try {
         await packItem(productId, selectedBin, quantity);
-        // Gọi API thành công → chuyển sang item tiếp theo
         const nextIndex = productIndex + 1;
         if (nextIndex < totalProducts) {
             router.replace({
-                pathname: '/pickingflow',
+                pathname: '/(worker)/pickingflow',
                 params: { ...params, productIndex: String(nextIndex) },
             });
         } else {
-            router.replace({
-                pathname: '/productlist',
-                params: { taskId: params.taskId, completed: 'true' },
-            });
+            Alert.alert('Hoàn thành', 'Đã pick xong tất cả sản phẩm!');
+            router.replace('/(worker)/productlist');
         }
     } catch (err) {
         Alert.alert('Lỗi', err.message || 'Không thể xác nhận pack hàng');
@@ -83,6 +84,7 @@ export default function PickingFlowScreen() {
         setSubmitting(false);
     }
 };
+
   const renderStepIndicator = () => (
     <View style={styles.stepRow}>
       {[1, 2, 3, 4].map((s, i) => (
@@ -147,15 +149,12 @@ export default function PickingFlowScreen() {
                     value={barcode}
                     onChangeText={setBarcode}
                   />
-                 <TouchableOpacity
-                      style={[styles.manualBtn, submitting && { opacity: 0.7 }]}
-                      onPress={handleArrived}
-                      disabled={submitting}
-                  >
-                      <Text style={styles.manualBtnText}>
-                          {submitting ? 'Đang xác nhận...' : '✅ Xác nhận đã đến & pack hàng'}
-                      </Text>
-                  </TouchableOpacity>
+                <TouchableOpacity
+                    style={styles.manualBtn}
+                    onPress={handleManualScan}
+                >
+                    <Text style={styles.manualBtnText}>Xác nhận</Text>
+                </TouchableOpacity>
                 </View>
               </>
             ) : (

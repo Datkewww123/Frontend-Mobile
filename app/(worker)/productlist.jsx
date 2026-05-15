@@ -152,7 +152,7 @@ export default function productListScreen() {
         ) : (
       <FlatList
         data={products}
-        keyExtractor={(item) => item.key}
+        keyExtractor={(item) => item.id}
         renderItem={renderItem}
         contentContainerStyle={styles.list}
       />
