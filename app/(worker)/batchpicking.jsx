@@ -1,18 +1,11 @@
 import { View, Text, StyleSheet,
-         ScrollView, TouchableOpacity } from 'react-native';
+         ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { COLORS } from '../../constants/colors';
 import StaffBottomNav from '../../components/StaffBottomNav';
-
-// Thống kê batch
-const batchStats = [
-    { value: '18', label: 'Tổng SKU' },
-    { value: '6',  label: 'Vị trí kệ' },
-    { value: '3',  label: 'Thùng đích' },
-];
-
+import {getAssignedTasks} from '../../constants/services/api';
 // Danh sách item cần pick
 const batchItems = [
     {
@@ -90,7 +83,42 @@ function BatchItem({ item, onToggle }) {
 
 export default function BatchPickingScreen() {
     const [items, setItems] = useState(batchItems);
-
+    const [apiBatchItems, setApiBatchItems] = useState([]);
+    const [loading, setLoading] = useState(true);
+    useEffect(() =>{
+        async function fetchBatch(){
+            try{
+                const res = await getAssignedTasks();
+                const tasks = Array.isArray(res) ? res : [];
+                const allItems = tasks.flatMap((t, ti) => 
+                (t.item || [])
+                .filter(i => i.status !== 'picked')
+                .map((i, idx) => ({
+                    id: i._id,
+                    location: i.location || '',
+                    name: `${i.productName || i.name} (${i.quantity} ${i.unit || 'cái'})`,
+                    bins: [{
+                        color: '#fff3e0',
+                         text: '#e65100',
+                        label: `🟡 ${t.containerCode || 'BIN-??'}`
+                    }],
+                    done: false,
+                    isCurrent: ti === 0 && idx === 0
+                }))
+                );
+                if(allItems.length > 0 ) {
+                    setApiBatchItems(allItems);
+                    setItems(allItems);
+                }
+            } catch(err){
+                // giữ mock data nếu lỗi
+            }
+            finally {
+                setLoading(false);
+            }
+        }
+        fetchBatch();
+    }, []);
     // Toggle done khi nhấn vào item
     function handleToggle(id) {
         setItems(prev => prev.map((item) =>
@@ -101,6 +129,11 @@ export default function BatchPickingScreen() {
     }
 
     const doneCount = items.filter((i) => i.done).length;
+    const batchStats = [
+        { value: String(items.length), label: 'Tổng SKU' },
+        { value: String(new Set(items.map(i => i.location)).size), label: 'Vị trí kệ' },
+        { value: String(new Set(items.flatMap(i => i.bins.map(b => b.label))).size), label: 'Thùng đích' },
+    ];
 
     return (
         <SafeAreaView style={styles.safeArea}>
@@ -112,7 +145,7 @@ export default function BatchPickingScreen() {
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Batch Picking</Text>
                 <View style={styles.badge}>
-                    <Text style={styles.badgeText}>3 Đơn</Text>
+                    <Text style={styles.badgeText}>{items.length} Đơn</Text>
                 </View>
             </View>
 
@@ -159,13 +192,17 @@ export default function BatchPickingScreen() {
                     <Text style={styles.cardTitle}>
                         📋 Thứ tự Pick ({doneCount}/{items.length} xong)
                     </Text>
-                    {items.map((item) => (
-                        <BatchItem
-                            key={item.id}
-                            item={item}
-                            onToggle={handleToggle}
-                        />
-                    ))}
+                    {loading ? (
+                        <ActivityIndicator color={COLORS.primary} size="large" style={{ marginTop: 40 }} />
+                    ) : (
+                        items.map((item) => (
+                            <BatchItem
+                                key={item.id}
+                                item={item}
+                                onToggle={handleToggle}
+                            />
+                        ))
+                    )}
                 </View>
 
                 {/* Nút quét mã */}
