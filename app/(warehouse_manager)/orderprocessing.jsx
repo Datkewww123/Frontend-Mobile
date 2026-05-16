@@ -1,14 +1,14 @@
-import { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ScrollView, Alert } from 'react-native';
+import { useState, useEffect } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
 import { COLORS } from '../../constants/colors';
-
-const orders = [
-  { id: '#KF-12400', store: 'Kingfood Nguyễn Văn Linh, Q.7', items: 12, status: 'Chờ duyệt', date: '10/05/2026' },
-  { id: '#KF-12399', store: 'Kingfood Đinh Tiên Hoàng, Q.1', items: 8, status: 'Đang xử lý', date: '09/05/2026' },
-  { id: '#KF-12398', store: 'Kingfood Lê Văn Việt, Q.9', items: 5, status: 'Chờ duyệt', date: '08/05/2026' },
-  { id: '#KF-12397', store: 'Kingfood Nguyễn Văn Linh, Q.7', items: 15, status: 'Đang xử lý', date: '07/05/2026' },
-  { id: '#KF-12396', store: 'Kingfood Đinh Tiên Hoàng, Q.1', items: 10, status: 'Hoàn thành', date: '06/05/2026' },
+import {getOrders, updateOrderStatus} from '../../constants/services/api';
+const mockOrders = [
+  { id: '#KF-12400', _id: '#KF-12400', store: 'Kingfood Nguyễn Văn Linh, Q.7', items: 12, status: 'Chờ duyệt', date: '10/05/2026' },
+  { id: '#KF-12399', _id: '#KF-12399', store: 'Kingfood Đinh Tiên Hoàng, Q.1', items: 8, status: 'Đang xử lý', date: '09/05/2026' },
+  { id: '#KF-12398', _id: '#KF-12398', store: 'Kingfood Lê Văn Việt, Q.9', items: 5, status: 'Chờ duyệt', date: '08/05/2026' },
+  { id: '#KF-12397', _id: '#KF-12397', store: 'Kingfood Nguyễn Văn Linh, Q.7', items: 15, status: 'Đang xử lý', date: '07/05/2026' },
+  { id: '#KF-12396', _id: '#KF-12396', store: 'Kingfood Đinh Tiên Hoàng, Q.1', items: 10, status: 'Hoàn thành', date: '06/05/2026' },
 ];
 
 const statusConfig = {
@@ -19,26 +19,72 @@ const statusConfig = {
 
 export default function OrderProcessingScreen() {
   const [filter, setFilter] = useState('all');
-
-  const filteredOrders = filter === 'all' ? orders : orders.filter(o => {
-    if (filter === 'pending') return o.status === 'Chờ duyệt';
-    if (filter === 'processing') return o.status === 'Đang xử lý';
-    if (filter === 'done') return o.status === 'Hoàn thành';
-    return true;
-  });
+  const [orders, setOrders] = useState(mockOrders);
+  const [loadingOrders, setLoadingOrders] = useState(true);
+  useEffect(() => {
+    async function fetchOrders(){
+      try{
+        const res = await getOrders();
+        if (Array.isArray(res)) {
+          setOrders(res.map(o => ({
+            id: o.id || o._id,
+            _id: o._id || o.id,
+            store: o.store || o.storeName || '',
+            items: o.items || o.totalItems || o.productCount || 0,
+            date: o.date || (o.createdAt ? new Date(o.createdAt).toLocaleDateString('vi-VN') : ''),
+            status: o.status,
+          })));
+        }
+      }
+      catch(err){
+        // fallback to mock data
+      }
+      finally{
+        setLoadingOrders(false);
+      }
+    }
+    fetchOrders();
+  }, [])
+  const statusMap = {
+    pending: ['Chờ duyệt', 'pending'],
+    processing: ['Đang xử lý', 'processing'],
+    done: ['Hoàn thành', 'completed', 'done'],
+  };
+  const filteredOrders = filter === 'all' ? orders : orders.filter(o =>
+    (statusMap[filter] || []).includes(o.status)
+  );
 
   const handleAction = (order) => {
-    if (order.status === 'Chờ duyệt') {
+    const orderId = order._id || order.id;
+    if (order.status === 'Chờ duyệt' || order.status === 'pending') {
       Alert.alert(
         'Xử lý đơn hàng',
-        `${order.id} - ${order.store}\n\nDuyệt đơn hàng này?`,
+        `${order.id || order._id} - ${order.store || order.storeName}\n\nDuyệt đơn hàng này?`,
         [
-          { text: 'Từ chối', style: 'destructive' },
+          { text: 'Từ chối', style: 'destructive' ,
+            onPress : async() =>{
+              try{
+                await updateOrderStatus(orderId, 'cancelled');
+                setOrders(prev => prev.map(o =>
+                  (o._id || o.id) === orderId ? {...o, status: 'Đã từ chối'} : o
+                ));
+              } catch(err) {Alert.alert('Lỗi!', err.message);}
+            }
+          },
           { text: 'Để sau', style: 'cancel' },
-          { text: 'Duyệt', onPress: () => Alert.alert('Đã duyệt', `Đơn hàng ${order.id} đã được duyệt. Nhân viên sẽ được phân công.`) },
-        ]
-      );
-    } else if (order.status === 'Đang xử lý') {
+          { text: 'Duyệt', onPress: async () =>{
+            try{
+            await updateOrderStatus(orderId, 'approved');
+            setOrders(prev => prev.map(o=>
+              (o._id || o.id) === orderId ? {...o, status: 'Đang xử lí'}: o
+            ));
+            Alert.alert('✅ Đã duyệt', `Đơn hàng đã được duyệt`);
+          } catch(err) { Alert.alert('Lỗi', err.message); }
+        }
+      },
+    ]
+  );
+} else if (order.status === 'Đang xử lý' || order.status === 'processing') {
       router.push('/productlist');
     }
   };
@@ -73,31 +119,40 @@ export default function OrderProcessingScreen() {
           </TouchableOpacity>
         ))}
       </View>
-
-      <ScrollView style={styles.scroll}>
-        {filteredOrders.map((order, i) => {
-          const cfg = statusConfig[order.status] || statusConfig['Đang xử lý'];
-          return (
-            <TouchableOpacity
-              key={i}
-              style={styles.orderCard}
-              onPress={() => handleAction(order)}
-            >
-              <View style={styles.orderHead}>
-                <Text style={styles.orderId}>{order.id}</Text>
-                <View style={[styles.statusTag, { backgroundColor: cfg.color }]}>
-                  <Text style={[styles.statusText, { color: cfg.textColor }]}>{order.status}</Text>
-                </View>
-              </View>
-              <Text style={styles.orderStore}>{order.store}</Text>
-              <View style={styles.orderFooter}>
-                <Text style={styles.orderItems}>{order.items} sản phẩm</Text>
-                <Text style={styles.orderDate}>{order.date}</Text>
-              </View>
-            </TouchableOpacity>
-          );
-        })}
-      </ScrollView>
+      {loadingOrders ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator color={COLORS.primary} size="large" />
+        </View>
+      ) : (
+        <ScrollView style={styles.scroll}>
+          {filteredOrders.length === 0 ? (
+            <Text style={styles.emptyText}>Không có đơn hàng nào</Text>
+          ) : (
+            filteredOrders.map((order) => {
+              const cfg = statusConfig[order.status] || statusConfig['Đang xử lý'];
+              return (
+                <TouchableOpacity
+                  key={order.id || order._id}
+                  style={styles.orderCard}
+                  onPress={() => handleAction(order)}
+                >
+                  <View style={styles.orderHead}>
+                    <Text style={styles.orderId}>{order.id || order._id}</Text>
+                    <View style={[styles.statusTag, { backgroundColor: cfg.color }]}>
+                      <Text style={[styles.statusText, { color: cfg.textColor }]}>{order.status}</Text>
+                    </View>
+                  </View>
+                  <Text style={styles.orderStore}>{order.store}</Text>
+                  <View style={styles.orderFooter}>
+                    <Text style={styles.orderItems}>{order.items} sản phẩm</Text>
+                    <Text style={styles.orderDate}>{order.date}</Text>
+                  </View>
+                </TouchableOpacity>
+              );
+            })
+          )}
+        </ScrollView>
+      )}
     </SafeAreaView>
   );
 }
@@ -121,6 +176,8 @@ const styles = StyleSheet.create({
   filterActive: { backgroundColor: COLORS.primary },
   filterText: { fontSize: 12, fontWeight: '600', color: '#666' },
   filterTextActive: { color: '#fff' },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  emptyText: { textAlign: 'center', color: '#aaa', fontSize: 14, marginTop: 40 },
   scroll: { flex: 1, padding: 16 },
   orderCard: {
     backgroundColor: '#fff', borderRadius: 16, padding: 16, marginBottom: 10,
