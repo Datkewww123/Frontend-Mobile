@@ -136,7 +136,7 @@ export default function TeamScreen(){
                 users.length > 0 ? (
                     users.map(user =>(
                         <MemberRow
-                        key = {user._id}
+                        key = {user._id || user.id}
                         member = {{
                             id: user._id,
                             initials : (user.fullName || user.username || 'NV').split(' ').map(w =>w[0]).slice(-2).join('').toUpperCase(),
@@ -155,7 +155,7 @@ export default function TeamScreen(){
                 <View key = {team.zone} style = {styles.card}>
                     <Text style = {styles.cardTitle}>{team.zone}</Text>
                     {team.members.map((member) => (
-                        <MemberRow key = {member.id} member ={member}/>
+                        <MemberRow key = {member.id || member._id} member ={member}/>
                     ))}
                 </View>
             ))}
