@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, TextInput, Animated, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, TextInput, Animated, Alert, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { COLORS } from '../../constants/colors';
@@ -74,6 +74,7 @@ export default function PickingScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      <ScrollView style={styles.scrollArea} contentContainerStyle={styles.scrollContent}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
@@ -177,6 +178,7 @@ export default function PickingScreen() {
           </TouchableOpacity>
         </View>
       )}
+      </ScrollView>
         <StaffBottomNav />
     </SafeAreaView>
   );
@@ -184,6 +186,8 @@ export default function PickingScreen() {
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#f0f4f1' },
+  scrollArea: { flex: 1 },
+  scrollContent: { flexGrow: 1 },
   header: {
     flexDirection: 'row', alignItems: 'center', padding: 16,
     backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#eee',
