@@ -1,8 +1,10 @@
-import { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ScrollView, TextInput, Alert } from 'react-native';
+import { useState, useEffect } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, TextInput, Alert, ActivityIndicator } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { COLORS } from '../../constants/colors';
 import { useAuth } from '../../contexts/AuthContext';
+import { getProducts, createOrder } from '../../constants/services/api';
 
 const productCatalog = [
   { id: '1', name: 'Bánh Quy Hải Hà 200g', sku: 'KF-00123', unit: 'Hộp', price: 8500 },
@@ -16,15 +18,38 @@ const productCatalog = [
 ];
 
 export default function StoreOrderScreen() {
+  const [productCatalog, setProductCatalog] = useState([]);
+  const [loadingProducts, setLoadingProducts] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   const { userName } = useAuth();
   const [cart, setCart] = useState([]);
   const [search, setSearch] = useState('');
-
   const filteredProducts = productCatalog.filter(p =>
     p.name.toLowerCase().includes(search.toLowerCase()) ||
     p.sku.toLowerCase().includes(search.toLowerCase())
   );
-
+useEffect(() => {
+    async function fetchCatalog() {
+        try {
+            const res = await getProducts();
+            const products = Array.isArray(res) ? res : [];
+            if (products.length > 0) {
+                setProductCatalog(products.map(p => ({
+                    id: p._id,
+                    name: p.name,
+                    sku: p.sku,
+                    unit: p.unit || 'cái',
+                    price: p.price || 0,
+                })));
+            }
+        } catch (err) {
+            // productCatalog vẫn là [] → filteredProducts = []
+        } finally {
+            setLoadingProducts(false);
+        }
+    }
+    fetchCatalog();
+}, []);
   const addToCart = (product) => {
     setCart(prev => {
       const exist = prev.find(c => c.product.id === product.id);
@@ -64,9 +89,22 @@ export default function StoreOrderScreen() {
         { text: 'Huỷ', style: 'cancel' },
         {
           text: 'Xác nhận',
-          onPress: () => {
-            Alert.alert('Thành công', 'Đơn hàng đã được gửi đến kho. Vui lòng chờ xác nhận.');
-            setCart([]);
+onPress: async () => {
+    setSubmitting(true);
+    try {
+        await createOrder(
+            cart.map(c => ({
+                productId: c.product.id,
+                quantity: c.qty,
+            }))
+        );
+                  Alert.alert('✅ Thành công', 'Đơn hàng đã được gửi đến kho');
+                  setCart([]);
+              } catch (err) {
+                  Alert.alert('❌ Lỗi', err.message || 'Không đặt được hàng');
+              } finally {
+                  setSubmitting(false);
+              }
           },
         },
       ]
@@ -126,8 +164,16 @@ export default function StoreOrderScreen() {
             <Text style={styles.cartCount}>{totalItems} sản phẩm</Text>
             <Text style={styles.cartTotal}>{totalAmount.toLocaleString()}đ</Text>
           </View>
-          <TouchableOpacity style={styles.cartBtn} onPress={submitOrder}>
-            <Text style={styles.cartBtnText}>Gửi đơn hàng</Text>
+          <TouchableOpacity
+            style={[styles.orderBtn, submitting && { opacity: 0.7 }]}
+            onPress={submitOrder}
+            disabled={submitting}
+          >
+            <Text style={styles.orderBtnText}>
+              {submitting
+                ? 'Đang gửi...'
+                : `Đặt hàng · ${totalItems} SP · ${totalAmount.toLocaleString()}đ`}
+            </Text>
           </TouchableOpacity>
         </View>
       )}
@@ -213,6 +259,11 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   cartBtnText: { color: '#fff', fontSize: 14, fontWeight: '800' },
+  orderBtn: {
+    backgroundColor: COLORS.primary, borderRadius: 14, paddingHorizontal: 20,
+    paddingVertical: 12,
+  },
+  orderBtnText: { color: '#fff', fontSize: 14, fontWeight: '800' },
   cartDetail: {
     backgroundColor: '#fff', padding: 14, borderTopWidth: 1, borderTopColor: '#eee',
     maxHeight: 200,
