@@ -1,6 +1,8 @@
-import {Text, View, TouchableOpacity, StyleSheet, ScrollView} from 'react-native';
+import {Text, View, TouchableOpacity, StyleSheet, ScrollView, Alert, ActivityIndicator} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {router} from 'expo-router';
+import {useState, useEffect} from 'react';
+import {getUsers} from '../../constants/services/api'
 import {COLORS} from '../../constants/colors';
 
 // MockData 2 khu vực
@@ -66,7 +68,7 @@ function MemberRow({member}){
             <Text style = {styles.memberOrder}>{member.order}</Text>
         </View>
         {/* SKU/h */}
-        <View style = {styles.memberSKU}>
+        <View style = {styles.memberSku}>
             <Text style= {[styles.skuValue, {color: member.skuColor}]}>{member.sku ?? '-'}</Text>
             <Text style = {styles.skuUnit}>{member.status === 'break' ? 'Nghỉ': 'SKU/h'}</Text>
         </View>
@@ -75,6 +77,36 @@ function MemberRow({member}){
 }
 
 export default function TeamScreen(){
+        const [users, setUsers] = useState([]);
+    const [loading, setLoading] = useState(true);
+    useEffect(() => {
+        async function fetchUsers(){
+            try{
+                const res = await getUsers();
+                setUsers(Array.isArray(res) ? res : []);
+            }
+            catch(err){
+                // giữ mockdata nêu lõi
+            }
+            finally {
+                setLoading(false);
+            }
+        }
+        fetchUsers();
+    }, []);
+    const activeStats = users.length > 0
+      ? {
+          totalActive: users.filter(u => u.isActive).length,
+          totalSKU: users.reduce((s, u) => s + (u.todaySku || 0), 0),
+          zoneDetails: '',
+        }
+      : teams.reduce((acc, t) => {
+          const active = t.members.filter(m => m.status !== 'break');
+          acc.totalActive += active.length;
+          acc.totalSKU += active.reduce((s, m) => s + (m.sku || 0), 0);
+          acc.zoneDetails += `${t.zone.split(' ').slice(1).join(' ')}: ${active.length} · `;
+          return acc;
+        }, { totalActive: 0, totalSKU: 0, zoneDetails: '' });
     return(
         <SafeAreaView style = {styles.safeArea}>
             {/* Headder */}
@@ -93,12 +125,33 @@ export default function TeamScreen(){
                 <View style = {styles.alert}>
                     <Text style = {styles.alertIcon}>👥</Text>
                     <View style = {styles.alertBody}>
-                        <Text style = {styles.alertTitle}>5 nhân viên vẫn còn đang hoạt động</Text>
-                        <Text style = {styles.alertSub}>Khu bánh kẹo: 3 Khu Đồ uống: 2 Tổng năng suất: 291 SKU/h</Text>
+                        <Text style = {styles.alertTitle}>{activeStats.totalActive} nhân viên vẫn còn đang hoạt động</Text>
+                        <Text style = {styles.alertSub}>{activeStats.zoneDetails}Tổng năng suất: {activeStats.totalSKU} SKU/h</Text>
                     </View>
                 </View>
                 {/* Danh sách từng khu vực */}
-            {teams.map((team) => (
+                {loading ? (
+                    <ActivityIndicator color={COLORS.primary} size = 'large' style = {{marginTop : 40}} />
+                ): 
+                users.length > 0 ? (
+                    users.map(user =>(
+                        <MemberRow
+                        key = {user._id}
+                        member = {{
+                            id: user._id,
+                            initials : (user.fullName || user.username || 'NV').split(' ').map(w =>w[0]).slice(-2).join('').toUpperCase(),
+                            avatarColor: '#e8f5e9',
+                            avatarText: COLORS.primary,
+                            name: user.fullName || user.username,
+                            order: user.currentTask || 'Không có nhiệm vụ',
+                            sku: user.todaySku || null,
+                            skuColor: COLORS.primary,
+                            status: user.isActive ? 'good' : 'offline',
+                        }}
+                    />
+                    ))
+                ):
+            teams.map((team) => (
                 <View key = {team.zone} style = {styles.card}>
                     <Text style = {styles.cardTitle}>{team.zone}</Text>
                     {team.members.map((member) => (

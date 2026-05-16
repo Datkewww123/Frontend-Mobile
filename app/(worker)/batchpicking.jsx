@@ -83,7 +83,6 @@ function BatchItem({ item, onToggle }) {
 
 export default function BatchPickingScreen() {
     const [items, setItems] = useState(batchItems);
-    const [apiBatchItems, setApiBatchItems] = useState([]);
     const [loading, setLoading] = useState(true);
     useEffect(() =>{
         async function fetchBatch(){
@@ -107,7 +106,6 @@ export default function BatchPickingScreen() {
                 }))
                 );
                 if(allItems.length > 0 ) {
-                    setApiBatchItems(allItems);
                     setItems(allItems);
                 }
             } catch(err){

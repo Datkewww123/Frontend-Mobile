@@ -15,6 +15,7 @@ const statusConfig = {
   'Chờ duyệt': { color: '#fff3e0', textColor: '#e65100' },
   'Đang xử lý': { color: '#e3f2fd', textColor: '#1565c0' },
   'Hoàn thành': { color: '#e8f5e9', textColor: COLORS.primary },
+  'Đã từ chối': { color: '#ffebee', textColor: '#c62828' },
 };
 
 export default function OrderProcessingScreen() {

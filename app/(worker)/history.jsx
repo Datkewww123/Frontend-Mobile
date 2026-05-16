@@ -93,7 +93,7 @@ export default function HistoryScreen(){
                     grouped[date].push({
                         id : task._id,
                         time: task.updatedAt ? new Date(task.updatedAt).toLocaleTimeString('vi-VN', {hour: '2-digit', minute: '2-digit'}): '',
-                        icon: task.status === 'completed' ? '📦' :'📦',
+                        icon: task.status === 'completed' ? '✅' :'📦',
                         type : 'pick',
                         sub: `${task.pickedCount} / ${task.totalCount} SKU`,
                         status: task.status === 'completed' ? 'ok' : 'skip',

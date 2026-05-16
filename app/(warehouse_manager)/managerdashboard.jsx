@@ -90,7 +90,7 @@ export default function ManagerDashboardScreen(){
         loc: inc.location || '',
         who: `${inc.reportedBy || ''} · ${inc.time || ''}`,
     }))
-    : shortages
+    : shortages;
     useEffect(() => {
         async function fetchAll(){
             try{

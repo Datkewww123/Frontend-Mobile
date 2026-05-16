@@ -104,7 +104,7 @@ export default function NotificationScreen(){
                 icon: '⚠️', iconBg: '#fff3e0',
                 title: `Sự cố ${i.type || 'Thiếu hàng'}`,
                 message: i.note || i.detail || ' ',
-                time: i.createAt ? new Date(i.createAt).toLocaleTimeString('vi-VN') : ' ',
+                time: i.createdAt ? new Date(i.createdAt).toLocaleTimeString('vi-VN') : ' ',
                 unread: true,
             }));
             const old = incidents
@@ -147,6 +147,9 @@ export default function NotificationScreen(){
                     </View>
             </View>
             {/* Danh sách thông báo */}
+            {loading ? (
+                <ActivityIndicator color={COLORS.primary} size="large" style={{ marginTop: 40 }} />
+            ) : (
                        <SectionList
                 sections={displaySections}
                 keyExtractor={(item) => item.id}
@@ -160,6 +163,7 @@ export default function NotificationScreen(){
                 )}
                 contentContainerStyle={styles.list}
             />
+            )}
         <StaffBottomNav />
         </SafeAreaView>
     );
