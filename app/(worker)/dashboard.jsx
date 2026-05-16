@@ -6,6 +6,7 @@ import{
     StyleSheet,
     Alert,
     ActivityIndicator,
+    ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {COLORS} from '../../constants/colors'
@@ -55,9 +56,8 @@ export default function DashboardScreen(){
     }
     return(
        <SafeAreaView style={styles.safeArea}>
-            {/* PHẦN 1: BANNER CA LÀM VIỆC */}
+           <ScrollView style={styles.scrollArea} contentContainerStyle={styles.scrollContent}>
             <View style={styles.banner}>
-                {/* Tên và khu vực */}
                 <View style={styles.bannerTop}>
                     <View>
                         <Text style={styles.greeting}>Xin chào 👋</Text>
@@ -69,7 +69,6 @@ export default function DashboardScreen(){
                         <Text style={styles.shiftValue}>08:00–16:00</Text>
                     </View>
                 </View>
-                {/* 3 chỉ số KPI */}
             {loading ? (
     <ActivityIndicator color="#fff" style={{ marginTop: 20 }} />
 ) : tasks.length === 0 ? (
@@ -108,8 +107,8 @@ export default function DashboardScreen(){
     ))
 )}
             </View>
+            </ScrollView>
             <StaffBottomNav />
-            
             </SafeAreaView>
 )}
 const styles = StyleSheet.create({
@@ -119,6 +118,9 @@ const styles = StyleSheet.create({
         backgroundColor: '#fff',
     },
 
+    // Scroll
+    scrollArea: { flex: 1 },
+    scrollContent: { flexGrow: 1 },
     // Banner xanh phía trên
     banner: {
         backgroundColor: COLORS.primary,
