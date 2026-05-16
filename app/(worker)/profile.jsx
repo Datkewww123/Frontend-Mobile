@@ -2,7 +2,10 @@ import {Text, View, TextInput, TouchableOpacity, ScrollView, StyleSheet} from 'r
 import { SafeAreaView } from 'react-native-safe-area-context'
 import {router} from 'expo-router'
 import {COLORS} from '../../constants/colors'
-import StaffBottomNav from '../../components/StaffBottomNav'
+import StaffBottomNav from '../../components/StaffBottomNav';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, Alert } from 'react-native';
+import { getProfile } from '../../constants/services/api';
 // componet tái sử dụng - tránh phải lặp đi lặp lại code vi phạm DRYƯ
 function InfoRow({label, value, valueColor}){
     return(
@@ -33,6 +36,22 @@ function Achievement ({medal, title, when}){
     )
 }
 export default function ProfileScreen (){
+    const [user, setUser] = useState(null);
+const [loading, setLoading] = useState(true);
+
+useEffect(() => {
+    async function fetchProfile() {
+        try {
+            const res = await getProfile();
+            setUser(res);
+        } catch (err) {
+            // Giữ data cứng nếu lỗi
+        } finally {
+            setLoading(false);
+        }
+    }
+    fetchProfile();
+}, []);
     return (
         < SafeAreaView style = {styles.safeArea}>
             {/* phần header */}
@@ -48,87 +67,53 @@ export default function ProfileScreen (){
             </View>
             {/*Ava + tên của nhân viên  */}
              <ScrollView style={styles.scroll}>
-            <View style = {styles.banner}>
-                     <Text style={styles.avatarEmoji}>👷</Text>
-                     <Text style={styles.name}>Phạm Thị Mai</Text>
-                     <Text style={styles.idText}>Mã NV: KF-NV-042 Ca Sáng</Text>
-                 <View style = {styles.badgeRow}>
-                        <View style ={styles.badge}>
-                        <Text style ={styles.badgeText}>🍬 Bánh & Kẹo </Text>
-                     </View>
-                     <View style = {styles.badge}>
-                        <Text style={styles.badgeText}>⭐ Tháng 3</Text>
-                     </View>
+      {loading ? (
+    <ActivityIndicator color={COLORS.primary} size="large" style={{ marginTop: 40 }} />
+) : (
+    <>
+        {/* Banner */}
+        <View style={styles.banner}>
+            <Text style={styles.avatarEmoji}>👷</Text>
+            <Text style={styles.name}>{user?.fullName || 'Phạm Thị Mai'}</Text>
+            <Text style={styles.idText}>
+                Mã NV: {user?.employeeId || 'KF-NV-042'} Ca Sáng
+            </Text>
+            <View style={styles.badgeRow}>
+                <View style={styles.badge}>
+                    <Text style={styles.badgeText}>
+                        {user?.zone || '🍬 Bánh & Kẹo'}
+                    </Text>
                 </View>
             </View>
-               {/* Thông tin cá nhân của nhân viên  */}
-               <View style = {styles.card}>
-                <Text style = {styles.cardTitle}>Thông tin cá nhân</Text>
-                <InfoRow label = 'Họ và Tên' value ='Phạm Thị Mai'/>
-                <InfoRow label = 'Khu vực' value = '🍬 Bánh & Kẹo'/>
-                <InfoRow label = 'Ngày vào làm' value = '12/03/2023' />
-                <InfoRow label = 'Tổng SKU đã chọn' value = '12,840' />
-                <InfoRow label = 'Trung bình năng suất' value ='52 SKU/h'/>
-                <InfoRow label ='Số ca đã làm' value = '186 ca'/>
-               </View>
-               {/* Những ca làm sắp đến của nhân viên */}
-               <View style = {styles.card}>
-                <Text style = {styles.cardTitle} >
-                    Ca làm Sắp tới
-                </Text>
-                <InfoRow label="Hôm nay (22/04)" value="☀️ Ca Sáng 08:00–16:00" />
-                    <InfoRow label="Ngày mai (23/04)" value="🌙 Ca Chiều 16:00–00:00" />
-                    <InfoRow label="24/04" value="🏖️ Nghỉ" />
-               </View>
-               {/* Thành tích của nhân viên này */}
-               <View style = {styles.card}>
-                <Text style = {styles.cardTitle}>Thành tích đạt được</Text>
-                <Achievement medal = '🥇' title = 'Nhân viên xuất sắc T3/2026'when ='Thang 3, 2026' />
-                            <Achievement
-                        medal="⚡"
-                        title="Pick 100 SKU trong 1 giờ"
-                        when="15/02/2026"
-                    />
-               </View>
-               {/* Xem năng suất của bản thân */}
-               <TouchableOpacity
-                    style={styles.productivityBtn}
-                    onPress={() => router.push('/productivity')}
-                >
-                    <Text style={styles.productivityBtnText}>
-                        📈 Xem năng suất của tôi
-                    </Text>
-                </TouchableOpacity>
-               {/* Lịch sử picking */}
-               {/* Nút lịch sử picking */}
-                    <TouchableOpacity
-                        style={styles.historyBtn}
-                        onPress={() => router.push('/history')}
-                    >
-                        <Text style={styles.historyBtnText}>
-                            🕐 Lịch sử Picking
-                        </Text>
-                    </TouchableOpacity>
-               {/* Nút bàn giao ca */}
-                            <TouchableOpacity
-                    style={styles.handoverBtn}
-                    onPress={() => router.push('/handover')}
-                >
-                    <Text style={styles.handoverBtnText}>
-                        🤝 Bàn giao ca
-                    </Text>
-                </TouchableOpacity>
-               {/* Nút tổng kết ca */}
-               <TouchableOpacity 
-                style={styles.shiftBtn}
-                onPress={() => router.push('/endshift')}
-                >
-                <Text style={styles.shiftBtnText}>📊 Xem tổng kết ca</Text>
-                </TouchableOpacity>
-               {/* Nút đổi pin */}
-               <TouchableOpacity style = {styles.pinBtn}>
-                <Text style = {styles.pinBtnText}> Đổi Pin đăng nhập</Text>
-               </TouchableOpacity>
+        </View>
+
+        {/* Thông tin */}
+        <View style={styles.card}>
+            <Text style={styles.cardTitle}>Thông tin cá nhân</Text>
+            <InfoRow label='Họ và Tên' value={user?.fullName || 'Phạm Thị Mai'} />
+            <InfoRow label='Khu vực' value={user?.zone || '🍬 Bánh & Kẹo'} />
+            <InfoRow label='Ngày vào làm'
+                value={user?.startDate
+                    ? new Date(user.startDate).toLocaleDateString('vi-VN')
+                    : '12/03/2023'} />
+            <InfoRow label='Tổng SKU đã chọn'
+                value={user?.totalSku ? String(user.totalSku) : '12,840'}
+                valueColor={COLORS.primary} />
+            <InfoRow label='Trung bình năng suất'
+                value={user?.avgSku ? `${user.avgSku} SKU/h` : '52 SKU/h'} />
+            <InfoRow label='Số ca đã làm'
+                value={user?.totalShifts ? `${user.totalShifts} ca` : '186 ca'} />
+        </View>
+
+        {/* Ca làm — giữ mock vì backend chưa có */}
+        <View style={styles.card}>
+            <Text style={styles.cardTitle}>Ca làm Sắp tới</Text>
+            <InfoRow label="Hôm nay (22/04)" value="☀️ Ca Sáng 08:00–16:00" />
+            <InfoRow label="Ngày mai (23/04)" value="🌙 Ca Chiều 16:00–00:00" />
+            <InfoRow label="24/04" value="🏖️ Nghỉ" />
+        </View>
+    </>
+)}
              </ScrollView>
              <StaffBottomNav />
         </SafeAreaView>
