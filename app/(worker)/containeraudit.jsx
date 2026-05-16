@@ -1,9 +1,11 @@
 import { View, Text, StyleSheet,
-         ScrollView, TouchableOpacity } from 'react-native';
+         ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams} from 'expo-router';
 import { COLORS } from '../../constants/colors';
 import StaffBottomNav from '../../components/StaffBottomNav';
+import {useState, useEffect} from 'react';
+import {traceContainer} from '../../constants/services/api'
 
 // Mock data thùng hàng
 const binInfo = {
@@ -57,6 +59,42 @@ function AuditRow({item}){
 }
 
 export default function ContainerAuditScreen(){
+    const params = useLocalSearchParams();
+    const [apiBinInfo, setApiBinInfo] = useState(null);
+    const [apiSkuList, setApiSkuList] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const containerCode = params.containerCode || binInfo.code;
+    const displayBinInfo = apiBinInfo || binInfo;
+    const displaySkuList = apiSkuList.length > 0 ? apiSkuList : skuList;
+
+    useEffect(() =>{
+        async function fetchTrace(){
+            try{
+                const res = await traceContainer(containerCode);
+                setApiBinInfo({
+                    code: res.containerCode || containerCode,
+                    order: res.orderId || ' ',
+                    status : res.status || 'checking',
+                });
+                setApiSkuList((res.items || []).map(item =>  ({
+                    id: item._id,
+                    sku: item.sku,
+                    name: item.productName,
+                    required : `${item.requiredQty} ${item.unit}`,
+                    actual: item.actualQty,
+                    status: item.status === 'ok' ? 'ok'
+                      : item.status === 'short' ? 'bad' : 'skip',
+                })));
+            }
+            catch(err){
+                // Giữ mockdata nếu bị lỗi
+            }
+            finally{
+                setLoading(false);
+            }
+        }
+        fetchTrace();
+    },[containerCode])
     return(
          <SafeAreaView style={styles.safeArea}>
 
@@ -71,13 +109,18 @@ export default function ContainerAuditScreen(){
                 </View>
             </View>
             {/* Body */}
+            {loading ? (
+                <View style={styles.loadingContainer}>
+                    <ActivityIndicator color={COLORS.primary} size="large" />
+                </View>
+            ) : (
             <ScrollView style = {styles.scroll}>
                 {/* Card thùng hàng */}
                 <View style = {styles.binCard}>
                     <Text style = {styles.binEmoji}>📦</Text>
                     <View style = {styles.binInfo}>
-                        <Text style = {styles.binCode}>{binInfo.code}</Text>
-                        <Text style = {styles.binOrder}>{binInfo.order}</Text>
+                        <Text style = {styles.binCode}>{displayBinInfo.code}</Text>
+                        <Text style = {styles.binOrder}>{displayBinInfo.order}</Text>
                         <View style = {styles.checkingBadge}>
                             <Text style = {styles.checkingText}>Đang kiểm tra</Text>
                         </View>
@@ -86,16 +129,21 @@ export default function ContainerAuditScreen(){
                 {/* Danh sách SKU */}
                 <View style = {styles.card}>
                     <Text style = {styles.cardTitle}>Danh sách SKU trong thùng</Text>
-                    {skuList.map((item) => (
+                    {displaySkuList.map((item) => (
                         <AuditRow key = {item.id} item = {item} />
                     ))}
                 </View>
-                {/* Kết quả audit -  không đạt */}
+                {/* Kết quả audit */}
+                {displaySkuList.some(item => item.status === 'bad' || item.status === 'skip') && (
                 <View style = {styles.resultBox}>
                     <Text style = {styles.resultIcon}>❌</Text>
                     <Text style = {styles.resultTitle}>Không đạt - cần phải xử lí</Text>
-                    <Text style = {styles.resultSub}>BIN-401 thiếu 2 gói Mì Hảo Hảo và 1 SKU báo thiếu.</Text>
+                    <Text style = {styles.resultSub}>
+                        {displayBinInfo.code} có{' '}
+                        {displaySkuList.filter(i => i.status !== 'ok').length} SKU cần xử lí.
+                    </Text>
                 </View>
+                )}
                 {/* Nút chụp ảnh + nút báo cáo */}
                 <TouchableOpacity style = {styles.btnPrimary}>
                     <Text style = {styles.btnPrimaryText}>📸 Chụp ảnh & Báo cáo</Text>
@@ -104,6 +152,7 @@ export default function ContainerAuditScreen(){
                     <Text style = {styles.btnOutlineText}>↩️ Bổ sung hàng còn thiếu</Text>
                 </TouchableOpacity>
             </ScrollView>
+            )}
             <StaffBottomNav />
             </SafeAreaView>
 
@@ -147,6 +196,7 @@ const styles = StyleSheet.create({
         fontWeight: '600',
     },
 
+    loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
     scroll: { flex: 1, padding: 16 },
 
     // Bin Card
