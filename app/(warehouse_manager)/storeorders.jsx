@@ -55,20 +55,20 @@ export default function StoreOrdersScreen() {
         'Xử lý đơn hàng',
         `Đơn hàng #${order.id}\n\nDuyệt đơn hàng này?`,
         [
-          { text: 'Từ chối', style: 'destructive', onPress: () => confirmStatus(order.id, 'cancelled') },
+          { text: 'Từ chối', style: 'destructive', onPress: () => confirmStatus(order.id || order._id, 'cancelled') },
           { text: 'Để sau', style: 'cancel' },
-          { text: 'Duyệt', onPress: () => confirmStatus(order.id, 'processing') },
+          { text: 'Duyệt', onPress: () => confirmStatus(order.id || order._id, 'processing') },
         ]
       );
     } else if (order.status === 'processing') {
-      router.push('/productlist');
+      router.push({ pathname: '/(worker)/productlist', params: { taskId: order.id || order._id } });
     }
   };
 
   const confirmStatus = async (id, status) => {
     try {
       await updateOrderStatus(id, status);
-      setOrders(prev => prev.map(o => o.id === id ? { ...o, status } : o));
+      setOrders(prev => prev.map(o => (o.id || o._id) === id ? { ...o, status } : o));
     } catch {
       Alert.alert('Lỗi', 'Không thể cập nhật trạng thái');
     }
@@ -83,7 +83,7 @@ export default function StoreOrdersScreen() {
     return (
       <TouchableOpacity style={styles.orderCard} onPress={() => handleAction(item)}>
         <View style={styles.orderHead}>
-          <Text style={styles.orderId}>#{item.id}</Text>
+          <Text style={styles.orderId}>#{item.id || item._id}</Text>
           <View style={[styles.statusTag, { backgroundColor: st.color }]}>
             <Text style={[styles.statusText, { color: st.textColor }]}>{st.label}</Text>
           </View>
@@ -138,7 +138,7 @@ export default function StoreOrdersScreen() {
 
       <FlatList
         data={filteredOrders}
-        keyExtractor={(item) => String(item.id)}
+        keyExtractor={(item) => String(item.id || item._id)}
         renderItem={renderItem}
         contentContainerStyle={styles.list}
         ItemSeparatorComponent={() => <View style={styles.separator} />}
