@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Text, View, TouchableOpacity, StyleSheet, FlatList, SafeAreaView, Alert, ActivityIndicator } from 'react-native';
+import { Text, View, TouchableOpacity, StyleSheet, FlatList, Alert, ActivityIndicator } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import {getAssignedTasks} from '../../constants/services/api'
 import { COLORS } from '../../constants/colors';
 import { router, useLocalSearchParams } from 'expo-router';

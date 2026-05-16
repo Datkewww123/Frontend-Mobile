@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, TextInput, Animated, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, TextInput, Animated, Alert } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import {packItem} from '../../constants/services/api'
 import { COLORS } from '../../constants/colors';

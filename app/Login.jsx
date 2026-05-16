@@ -6,10 +6,10 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
   Alert,
   ScrollView,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import {login as apiLogin, customerLogin} from '../constants/services/api'
 import { COLORS } from '../constants/colors';
 import { useAuth } from '../contexts/AuthContext';

@@ -1,4 +1,5 @@
-import {Text, View, TextInput, TouchableOpacity, ScrollView, SafeAreaView, StyleSheet} from 'react-native'
+import {Text, View, TextInput, TouchableOpacity, ScrollView, StyleSheet} from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
 import {router} from 'expo-router'
 import {COLORS} from '../../constants/colors'
 import StaffBottomNav from '../../components/StaffBottomNav'
