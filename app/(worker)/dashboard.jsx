@@ -4,14 +4,14 @@ import{
     Text,
     TouchableOpacity,
     StyleSheet,
-    SafeAreaView,
     Alert,
+    ActivityIndicator,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import {COLORS} from '../../constants/colors'
 import {useState, useEffect} from 'react'
 import StaffBottomNav from '../../components/StaffBottomNav'
 import { useAuth } from '../../contexts/AuthContext'
-import {ActivityIndicator} from 'react-native'
 import {getAssignedTasks} from '../../constants/services/api' 
 
 
@@ -79,7 +79,7 @@ export default function DashboardScreen(){
 ) : (
     tasks.map((task) => (
         <TouchableOpacity
-            key={task._id}
+            key={task._id || task.orderId}
             style={styles.orderCard}
             onPress={() => router.push({
                 pathname: '/(worker)/productlist',
