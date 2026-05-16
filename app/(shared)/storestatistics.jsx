@@ -1,6 +1,9 @@
-import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert, ActivityIndicator } from 'react-native';
+import {useState, useEffect} from 'react'
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { COLORS } from '../../constants/colors';
+import {getClientOrders} from '../../constants/services/api';
 
 const kpis = [
   { icon: '📦', value: '24', label: 'Đơn đã đặt (tháng)', color: '#e8f5e9', textColor: COLORS.primary },
@@ -16,13 +19,55 @@ const recentOrders = [
   { id: '#KF-12397', date: '07/05/2026', items: 15, total: '320,000đ', status: 'Đã huỷ' },
 ];
 
-const topProducts = [
+const mockTopProducts = [
   { name: 'Mì gói Hảo Hảo', qty: 120, unit: 'Gói' },
   { name: 'Nước tương Chinsu', qty: 85, unit: 'Chai' },
   { name: 'Coca Cola 330ml', qty: 72, unit: 'Lon' },
 ];
 
 export default function StoreStatisticsScreen() {
+  const [topProducts, setTopProducts] = useState([]);
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    async function fetchStats(){
+      try{
+        const res = await getClientOrders();
+        setOrders(Array.isArray(res) ? res : []);
+        const top = res.topProducts || [];
+        setTopProducts(top.length > 0 ? top : mockTopProducts);
+      }
+      catch(err){
+        // giữ mockdata nếu bị lỗi
+      }
+      finally {
+        setLoading(false);
+      }
+    }
+    fetchStats();
+  }, [])
+  // Tính kpi từ API
+  const displayKpis = orders.length > 0 ? [
+    { icon: '📦', value: String(orders.length),
+      label: 'Đơn đã đặt (tháng)', color: '#e8f5e9', textColor: COLORS.primary },
+    { icon: '✅', value: String(orders.filter(o => o.status === 'delivered').length),
+      label: 'Đã giao', color: '#e3f2fd', textColor: '#1565c0' },
+    { icon: '⏳', value: String(orders.filter(o => o.status === 'processing').length),
+      label: 'Đang xử lý', color: '#fff3e0', textColor: '#e65100' },
+    { icon: '❌', value: String(orders.filter(o => o.status === 'cancelled').length),
+      label: 'Đã huỷ', color: '#ffebee', textColor: '#e53935' },
+  ] : kpis ; // fallback mock
+  const displayOrders = orders.length > 0
+    ? orders.slice(0, 10).map(o => ({
+        id: `#${o.orderId || o._id}`,
+        date: o.createdAt ? new Date(o.createdAt).toLocaleDateString('vi-VN') : '',
+        items: o.items?.length || 0,
+        total: `${(o.totalAmount || 0).toLocaleString()}đ`,
+        status: o.status === 'delivered'  ? 'Đã giao'
+              : o.status === 'processing' ? 'Đang xử lý'
+              : o.status === 'cancelled'  ? 'Đã huỷ' : o.status,
+    }))
+    : recentOrders; // fallback mock
   return (
     <SafeAreaView style={styles.safeArea}>
       {/* Header */}
@@ -33,12 +78,16 @@ export default function StoreStatisticsScreen() {
         <Text style={styles.headerTitle}>Thống kê cửa hàng</Text>
         <View style={{ width: 28 }} />
       </View>
-
+      {loading ? (
+  <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+    <ActivityIndicator size="large" color={COLORS.primary} />
+  </View>
+) : (
       <ScrollView style={styles.scroll}>
         {/* KPI Grid */}
         <View style={styles.kpiGrid}>
-          {kpis.map((item, index) => (
-            <View key={index} style={[styles.kpiCard, { backgroundColor: item.color }]}>
+          {displayKpis.map((item, index) => (
+            <View key={item.label} style={[styles.kpiCard, { backgroundColor: item.color }]}>
               <Text style={styles.kpiIcon}>{item.icon}</Text>
               <Text style={[styles.kpiValue, { color: item.textColor }]}>{item.value}</Text>
               <Text style={styles.kpiLabel}>{item.label}</Text>
@@ -49,7 +98,7 @@ export default function StoreStatisticsScreen() {
         {/* Top sản phẩm */}
         <View style={styles.card}>
           <Text style={styles.cardTitle}>🔥 Top sản phẩm đặt nhiều nhất</Text>
-          {topProducts.map((p, i) => (
+          {(topProducts.length > 0 ? topProducts : mockTopProducts).map((p, i) => (
             <View key={i} style={styles.topRow}>
               <Text style={styles.topRank}>{i + 1}</Text>
               <View style={styles.topInfo}>
@@ -63,7 +112,7 @@ export default function StoreStatisticsScreen() {
         {/* Đơn hàng gần đây */}
         <View style={styles.card}>
           <Text style={styles.cardTitle}>📋 Đơn hàng gần đây</Text>
-          {recentOrders.map((order, i) => (
+          {displayOrders.map((order, i) => (
             <View key={i} style={styles.orderRow}>
               <View style={styles.orderInfo}>
                 <Text style={styles.orderId}>{order.id}</Text>
@@ -80,7 +129,7 @@ export default function StoreStatisticsScreen() {
           ))}
         </View>
       </ScrollView>
-
+      )}
       {/* Bottom Nav */}
       <View style={styles.bottomNav}>
         <TouchableOpacity style={styles.navItem} onPress={() => router.push('/storeorder')}>
