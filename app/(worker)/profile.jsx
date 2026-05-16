@@ -5,7 +5,7 @@ import {COLORS} from '../../constants/colors'
 import StaffBottomNav from '../../components/StaffBottomNav';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert } from 'react-native';
-import { getProfile } from '../../constants/services/api';
+import { getProfile, updateProfile } from '../../constants/services/api';
 // componet tái sử dụng - tránh phải lặp đi lặp lại code vi phạm DRYƯ
 function InfoRow({label, value, valueColor}){
     return(
@@ -38,6 +38,8 @@ function Achievement ({medal, title, when}){
 export default function ProfileScreen (){
     const [user, setUser] = useState(null);
 const [loading, setLoading] = useState(true);
+const [editing, setEditing] = useState(false);
+const [editForm, setEditForm] = useState({});
 
 useEffect(() => {
     async function fetchProfile() {
@@ -52,6 +54,24 @@ useEffect(() => {
     }
     fetchProfile();
 }, []);
+
+const startEdit = () => {
+  setEditForm({ fullName: user?.fullName || '', zone: user?.zone || '' });
+  setEditing(true);
+};
+
+const cancelEdit = () => setEditing(false);
+
+const saveEdit = async () => {
+  try {
+    await updateProfile(editForm);
+    setUser(prev => ({ ...prev, ...editForm }));
+    setEditing(false);
+    Alert.alert('Thành công', 'Cập nhật hồ sơ thành công');
+  } catch {
+    Alert.alert('Lỗi', 'Không thể cập nhật hồ sơ');
+  }
+};
     return (
         < SafeAreaView style = {styles.safeArea}>
             {/* phần header */}
@@ -63,7 +83,9 @@ useEffect(() => {
                 <Text style = {styles.headerTitle}>
                     Hồ sơ nhân viên
                 </Text>
-                <Text style = {styles.editBtn}>✏️</Text>
+                <TouchableOpacity onPress={editing ? cancelEdit : startEdit}>
+                  <Text style={styles.editBtn}>{editing ? '✕' : '✏️'}</Text>
+                </TouchableOpacity>
             </View>
             {/*Ava + tên của nhân viên  */}
              <ScrollView style={styles.scroll}>
@@ -74,17 +96,40 @@ useEffect(() => {
         {/* Banner */}
         <View style={styles.banner}>
             <Text style={styles.avatarEmoji}>👷</Text>
-            <Text style={styles.name}>{user?.fullName || 'Phạm Thị Mai'}</Text>
+            {editing ? (
+              <TextInput
+                style={[styles.name, styles.editInput, { color: '#fff', borderBottomColor: 'rgba(255,255,255,0.5)' }]}
+                value={editForm.fullName}
+                onChangeText={t => setEditForm(f => ({ ...f, fullName: t }))}
+                placeholderTextColor="rgba(255,255,255,0.5)"
+              />
+            ) : (
+              <Text style={styles.name}>{user?.fullName || 'Phạm Thị Mai'}</Text>
+            )}
             <Text style={styles.idText}>
                 Mã NV: {user?.employeeId || 'KF-NV-042'} Ca Sáng
             </Text>
             <View style={styles.badgeRow}>
                 <View style={styles.badge}>
-                    <Text style={styles.badgeText}>
-                        {user?.zone || '🍬 Bánh & Kẹo'}
-                    </Text>
+                    {editing ? (
+                      <TextInput
+                        style={[styles.badgeText, styles.editInput, { color: '#fff', borderBottomColor: 'rgba(255,255,255,0.5)', fontSize: 12 }]}
+                        value={editForm.zone}
+                        onChangeText={t => setEditForm(f => ({ ...f, zone: t }))}
+                        placeholderTextColor="rgba(255,255,255,0.5)"
+                      />
+                    ) : (
+                      <Text style={styles.badgeText}>
+                          {user?.zone || '🍬 Bánh & Kẹo'}
+                      </Text>
+                    )}
                 </View>
             </View>
+            {editing && (
+              <TouchableOpacity style={[styles.badge, { backgroundColor: '#fff', marginTop: 12 }]} onPress={saveEdit}>
+                <Text style={[styles.badgeText, { color: COLORS.primary }]}>Lưu thay đổi</Text>
+              </TouchableOpacity>
+            )}
         </View>
 
         {/* Thông tin */}
@@ -189,6 +234,13 @@ const styles = StyleSheet.create({
         color: '#fff',
         fontSize: 12,
         fontWeight: '600',
+    },
+    editInput: {
+        borderBottomWidth: 1,
+        borderBottomColor: '#ccc',
+        paddingVertical: 2,
+        paddingHorizontal: 4,
+        textAlign: 'center',
     },
 
     // Card

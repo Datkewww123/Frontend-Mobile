@@ -3,7 +3,7 @@ import { View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { COLORS } from '../../constants/colors';
-import { getOrders, updateOrderStatus } from '../../constants/services/api';
+import { getOrders, updateOrderStatus, deleteOrder } from '../../constants/services/api';
 
 const statusConfig = {
   pending: { label: 'Chờ duyệt', color: '#fff3e0', textColor: '#e65100' },
@@ -74,6 +74,24 @@ export default function StoreOrdersScreen() {
     }
   };
 
+  const handleDelete = (order) => {
+    Alert.alert(
+      'Xoá đơn hàng',
+      `Xoá đơn #${order.id || order._id}?`,
+      [
+        { text: 'Huỷ', style: 'cancel' },
+        { text: 'Xoá', style: 'destructive', onPress: async () => {
+          try {
+            await deleteOrder(order.id || order._id);
+            setOrders(prev => prev.filter(o => (o.id || o._id) !== (order.id || order._id)));
+          } catch {
+            Alert.alert('Lỗi', 'Không thể xoá đơn hàng');
+          }
+        }},
+      ]
+    );
+  };
+
   const filteredOrders = filter === 'all'
     ? orders
     : orders.filter(o => o.status === filter);
@@ -81,7 +99,7 @@ export default function StoreOrdersScreen() {
   const renderItem = ({ item }) => {
     const st = statusConfig[item.status] || { label: item.status, color: '#f5f5f5', textColor: '#888' };
     return (
-      <TouchableOpacity style={styles.orderCard} onPress={() => handleAction(item)}>
+      <TouchableOpacity style={styles.orderCard} onPress={() => handleAction(item)} onLongPress={() => handleDelete(item)}>
         <View style={styles.orderHead}>
           <Text style={styles.orderId}>#{item.id || item._id}</Text>
           <View style={[styles.statusTag, { backgroundColor: st.color }]}>

@@ -10,7 +10,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import {login as apiLogin, customerLogin} from '../constants/services/api'
+import {login as apiLogin, customerLogin, forgetPassword, verifyOtp, resetPassword} from '../constants/services/api'
 import { COLORS } from '../constants/colors';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -27,6 +27,11 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [role, setRole]         = useState(null);
   const [customerMode, setCustomerMode] = useState(false);
+  const [forgotStep, setForgotStep] = useState(0); // 0=off, 1=email, 2=otp, 3=newpass
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [otp, setOtp] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   const getDashboardRoute = () => {
     if (customerMode) return '/storeorder';
@@ -36,6 +41,43 @@ export default function LoginScreen() {
       default:      return '/dashboard';
     }
   };
+  const handleForgotPassword = async () => {
+    if (forgotStep === 1) {
+      if (!forgotEmail.trim()) { Alert.alert('Lỗi', 'Vui lòng nhập email'); return; }
+      setSubmitting(true);
+      try {
+        await forgetPassword(forgotEmail.trim());
+        setForgotStep(2);
+      } catch (err) {
+        Alert.alert('Lỗi', err.message || 'Không thể gửi yêu cầu');
+      } finally { setSubmitting(false); }
+    } else if (forgotStep === 2) {
+      if (!otp.trim()) { Alert.alert('Lỗi', 'Vui lòng nhập mã OTP'); return; }
+      setSubmitting(true);
+      try {
+        await verifyOtp(forgotEmail.trim(), otp.trim());
+        setForgotStep(3);
+      } catch (err) {
+        Alert.alert('Lỗi', err.message || 'Mã OTP không hợp lệ');
+      } finally { setSubmitting(false); }
+    } else if (forgotStep === 3) {
+      if (!newPassword.trim() || newPassword.length < 6) {
+        Alert.alert('Lỗi', 'Mật khẩu phải có ít nhất 6 ký tự');
+        return;
+      }
+      setSubmitting(true);
+      try {
+        await resetPassword(otp.trim(), newPassword.trim());
+        Alert.alert('Thành công', 'Đặt lại mật khẩu thành công. Vui lòng đăng nhập lại.');
+        setForgotStep(0);
+        setOtp('');
+        setNewPassword('');
+      } catch (err) {
+        Alert.alert('Lỗi', err.message || 'Không thể đặt lại mật khẩu');
+      } finally { setSubmitting(false); }
+    }
+  };
+
   const handleLogin = async () => {
     if (!role && !customerMode) {
         Alert.alert('Lỗi', 'Vui lòng chọn vai trò');
@@ -87,67 +129,132 @@ export default function LoginScreen() {
 
         <View style={styles.form}>
 
-          {customerMode ? (
+          {forgotStep > 0 ? (
             <>
-              <TouchableOpacity onPress={() => { setCustomerMode(false); setEmail(''); }}>
-                <Text style={styles.backLink}>← Quay lại</Text>
+              <TouchableOpacity onPress={() => { setForgotStep(0); setOtp(''); setNewPassword(''); }}>
+                <Text style={styles.backLink}>← Quay lại đăng nhập</Text>
               </TouchableOpacity>
 
-              <TextInput
-                style={styles.input}
-                placeholder="Email"
-                placeholderTextColor="rgba(255,255,255,0.45)"
-                keyboardType="email-address"
-                autoCapitalize="none"
-                value={email}
-                onChangeText={setEmail}
-              />
+              {forgotStep === 1 && (
+                <>
+                  <Text style={styles.zoneLabel}>Nhập email để nhận mã OTP</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Email"
+                    placeholderTextColor="rgba(255,255,255,0.45)"
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    value={forgotEmail}
+                    onChangeText={setForgotEmail}
+                  />
+                </>
+              )}
+
+              {forgotStep === 2 && (
+                <>
+                  <Text style={styles.zoneLabel}>Nhập mã OTP đã gửi đến email</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Mã OTP"
+                    placeholderTextColor="rgba(255,255,255,0.45)"
+                    keyboardType="number-pad"
+                    value={otp}
+                    onChangeText={setOtp}
+                  />
+                </>
+              )}
+
+              {forgotStep === 3 && (
+                <>
+                  <Text style={styles.zoneLabel}>Nhập mật khẩu mới</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Mật khẩu mới"
+                    placeholderTextColor="rgba(255,255,255,0.45)"
+                    secureTextEntry
+                    value={newPassword}
+                    onChangeText={setNewPassword}
+                  />
+                </>
+              )}
+
+              <TouchableOpacity style={[styles.loginBtn, submitting && { opacity: 0.7 }]} onPress={handleForgotPassword} disabled={submitting}>
+                <Text style={styles.loginBtnText}>
+                  {submitting ? 'Đang xử lý...' : forgotStep === 1 ? 'Gửi OTP' : forgotStep === 2 ? 'Xác nhận' : 'Đặt lại mật khẩu'}
+                </Text>
+              </TouchableOpacity>
             </>
           ) : (
             <>
-              <Text style={styles.zoneLabel}>Bạn là:</Text>
-              <View style={styles.roleRow}>
-                {roles.map((r) => (
-                  <TouchableOpacity
-                    key={r.key}
-                    style={[styles.roleBtn, role === r.key && styles.roleBtnActive]}
-                    onPress={() => { setRole(r.key); }}
-                  >
-                    <Text style={styles.roleIcon}>{r.icon}</Text>
-                    <Text style={[styles.roleLabel, role === r.key && styles.roleLabelActive]}>
-                      {r.label}
-                    </Text>
+              {customerMode ? (
+                <>
+                  <TouchableOpacity onPress={() => { setCustomerMode(false); setEmail(''); }}>
+                    <Text style={styles.backLink}>← Quay lại</Text>
                   </TouchableOpacity>
-                ))}
-              </View>
+
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Email"
+                    placeholderTextColor="rgba(255,255,255,0.45)"
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    value={email}
+                    onChangeText={setEmail}
+                  />
+                </>
+              ) : (
+                <>
+                  <Text style={styles.zoneLabel}>Bạn là:</Text>
+                  <View style={styles.roleRow}>
+                    {roles.map((r) => (
+                      <TouchableOpacity
+                        key={r.key}
+                        style={[styles.roleBtn, role === r.key && styles.roleBtnActive]}
+                        onPress={() => { setRole(r.key); }}
+                      >
+                        <Text style={styles.roleIcon}>{r.icon}</Text>
+                        <Text style={[styles.roleLabel, role === r.key && styles.roleLabelActive]}>
+                          {r.label}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Tên đăng nhập"
+                    placeholderTextColor="rgba(255,255,255,0.45)"
+                    value={username}
+                    onChangeText={setUsername}
+                  />
+                </>
+              )}
 
               <TextInput
                 style={styles.input}
-                placeholder="Tên đăng nhập"
+                placeholder="Mật khẩu"
                 placeholderTextColor="rgba(255,255,255,0.45)"
-                value={username}
-                onChangeText={setUsername}
+                secureTextEntry={true}
+                value={password}
+                onChangeText={setPassword}
               />
+
+              <TouchableOpacity style={[styles.loginBtn, loading && { opacity: 0.7 }]} onPress={handleLogin}  disabled={loading}>
+                <Text style={styles.loginBtnText}>{loading ? 'Đang đăng nhập...' : 'Đăng nhập'}</Text>
+              </TouchableOpacity>
+
+              {!customerMode && (
+                <TouchableOpacity onPress={() => setForgotStep(1)}>
+                  <Text style={styles.storeLink}>Quên mật khẩu?</Text>
+                </TouchableOpacity>
+              )}
+
+              {!customerMode && (
+                <TouchableOpacity onPress={() => setCustomerMode(true)}>
+                  <Text style={styles.storeLink}>Quản lý cửa hàng? Đăng nhập tại đây</Text>
+                </TouchableOpacity>
+              )}
             </>
-          )}
-
-          <TextInput
-            style={styles.input}
-            placeholder="Mật khẩu"
-            placeholderTextColor="rgba(255,255,255,0.45)"
-            secureTextEntry={true}
-            value={password}
-            onChangeText={setPassword}
-          />
-
-          <TouchableOpacity style={[styles.loginBtn, loading && { opacity: 0.7 }]} onPress={handleLogin}  disabled={loading}>
-            <Text style={styles.loginBtnText}>{loading ? 'Đang đăng nhập...' : 'Đăng nhập'}</Text>
-          </TouchableOpacity>
-
-          {!customerMode && (
-            <TouchableOpacity onPress={() => setCustomerMode(true)}>
-              <Text style={styles.storeLink}>Quản lý cửa hàng? Đăng nhập tại đây</Text>
-            </TouchableOpacity>
           )}
 
         </View>

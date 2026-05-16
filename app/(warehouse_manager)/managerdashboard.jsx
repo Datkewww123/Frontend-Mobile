@@ -3,7 +3,7 @@ import { View, Text, StyleSheet,
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import {useState, useEffect} from 'react';
-import {getDashboardStats, getIncidents} from '../../constants/services/api'
+import {getDashboardStatus, getIncidents} from '../../constants/services/api'
 import { COLORS } from '../../constants/colors';
 
 // 4 KPI cards
@@ -95,7 +95,7 @@ export default function ManagerDashboardScreen(){
         async function fetchAll(){
             try{
             const [statsRes, incidentsRes] = await Promise.all([
-                getDashboardStats(),
+                getDashboardStatus(),
                 getIncidents(),
             ]);
             setStats(statsRes);

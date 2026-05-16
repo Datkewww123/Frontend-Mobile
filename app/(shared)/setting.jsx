@@ -1,10 +1,10 @@
-import {Text, TextInput, View, TouchableOpacity, StyleSheet, ScrollView, Switch} from 'react-native'
+import {Text, TextInput, View, TouchableOpacity, StyleSheet, ScrollView, Switch, Alert} from 'react-native'
 import {useState, useEffect} from 'react'
 import{router} from 'expo-router'
 import {COLORS} from '../../constants/colors'
 import  {SafeAreaView} from 'react-native-safe-area-context'
 import { useAuth } from '../../contexts/AuthContext'
-import {logout as apiLogout} from '../../constants/services/api'
+import {logout as apiLogout, updateProfile, changeUserPassword} from '../../constants/services/api'
 // Tạo 1 component chung cho tất cả các card (tại vì cấu trúc cho từng dòng khá giống nhau)
 
 function SettingRow({icon, iconBg, name, sub, value, onValueChange}){
@@ -44,6 +44,28 @@ export default function SettingScreen(){
     const[keepScreen, setKeepScreen] = useState(true);
     const[offlineMode, setOfflineMode] = useState(true);
     const[autoSync, setAutoSync] = useState(true);
+    const[oldPassword, setOldPassword] = useState('');
+    const[newPassword, setNewPassword] = useState('');
+    const[confirmPassword, setConfirmPassword] = useState('');
+    const handleChangePassword = async () => {
+        if (!oldPassword || !newPassword || !confirmPassword) {
+            Alert.alert('Lỗi', 'Vui lòng nhập đầy đủ thông tin');
+            return;
+        }
+        if (newPassword !== confirmPassword) {
+            Alert.alert('Lỗi', 'Mật khẩu mới không khớp');
+            return;
+        }
+        try {
+            await changeUserPassword({ oldPassword, newPassword });
+            Alert.alert('Thành công', 'Đổi mật khẩu thành công');
+            setOldPassword('');
+            setNewPassword('');
+            setConfirmPassword('');
+        } catch {
+            Alert.alert('Lỗi', 'Không thể đổi mật khẩu');
+        }
+    };
 const handleLogout = async () => {
     try {
         await apiLogout();
@@ -102,6 +124,15 @@ const handleLogout = async () => {
                     sub = 'Gửi dữ liệu offline khi kết nối lại'
                     value = {autoSync}
                     onValueChange = {setAutoSync} />
+                </View>
+                <View style = {styles.card}>
+                    <Text style = {styles.cardTitle}>Đổi mật khẩu</Text>
+                    <TextInput style={styles.passwordInput} placeholder="Mật khẩu cũ" secureTextEntry value={oldPassword} onChangeText={setOldPassword} />
+                    <TextInput style={styles.passwordInput} placeholder="Mật khẩu mới" secureTextEntry value={newPassword} onChangeText={setNewPassword} />
+                    <TextInput style={styles.passwordInput} placeholder="Xác nhận mật khẩu" secureTextEntry value={confirmPassword} onChangeText={setConfirmPassword} />
+                    <TouchableOpacity style={styles.changePasswordBtn} onPress={handleChangePassword}>
+                        <Text style={styles.changePasswordText}>Đổi mật khẩu</Text>
+                    </TouchableOpacity>
                 </View>
                 <View style = {styles.card}>
                     <Text style = {styles.cardTitle}>Thông tin App</Text>
@@ -216,6 +247,18 @@ const styles = StyleSheet.create({
         fontSize: 13,
         fontWeight: '600',
         color: '#222',
+    },
+
+    passwordInput: {
+        borderWidth: 1, borderColor: '#ddd', borderRadius: 10,
+        padding: 12, fontSize: 14, marginHorizontal: 14, marginBottom: 10,
+    },
+    changePasswordBtn: {
+        margin: 14, marginTop: 0, padding: 12,
+        backgroundColor: COLORS.primary, borderRadius: 10, alignItems: 'center',
+    },
+    changePasswordText: {
+        fontSize: 14, fontWeight: '600', color: '#fff',
     },
 
     // Nút tạo tài khoản
