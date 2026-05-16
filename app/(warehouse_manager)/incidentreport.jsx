@@ -1,6 +1,7 @@
-import { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ScrollView, TextInput, Alert } from 'react-native';
+import { useState, useEffect } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ScrollView, TextInput, Alert, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
+import {getIncidents, resolveIncidents, reportIncident} from '../../constants/services/api';
 import { COLORS } from '../../constants/colors';
 
 const issueTypes = [
@@ -23,17 +24,62 @@ export default function IncidentReportScreen() {
   const [detail, setDetail] = useState('');
   const [location, setLocation] = useState('');
   const [showForm, setShowForm] = useState(false);
+  const [reports, setReports] = useState(recentReports); // fallback mock
+const [loadingReports, setLoadingReports] = useState(true);
+const [submitting, setSubmitting] = useState(false);
+  useEffect(() =>{
+    async function fetchReports(){
+      try{
+        const res = await getIncidents();
+        if(Array.isArray(res) && res.length > 0) {
+          setReports(res.map(r => ({
+              id: r._id,
+              type: r.type || r.issueTypes,
+              detail: r.detail || r.note,
+              by: r.reportedBy || '',
+              time: r.createdAt ? new Date(r.createdAt).toLocaleDateString('vi-VN') : '',
+              status: r.status === 'resolved' ? 'Đã xử lí' : 'Chờ xử lý',
+          })));
+        }
+      }
+      catch(err){
+        // Giữ nguyên mock nếu lỗi
+      }
+      finally{
+        setLoadingReports(false);
+      }
+    }
+    fetchReports();
+  }, [])
 
-  const submitReport = () => {
+  const submitReport =  async() => {
     if (!selectedType || !detail) {
       Alert.alert('Lỗi', 'Vui lòng chọn loại sự cố và nhập mô tả');
       return;
     }
-    Alert.alert('Thành công', 'Báo cáo sự cố đã được gửi đến quản lý.');
-    setSelectedType('');
-    setDetail('');
-    setLocation('');
-    setShowForm(false);
+    setSubmitting(true);
+    try{
+      await reportIncident('', selectedType, detail);
+      Alert.alert('✅ Thành công', 'Báo cáo sự cố đã được gửi');
+      setSelectedType(''), setDetail(''), setLocation(''), setShowForm(false);
+    }
+    catch(err){
+      Alert.alert('Lỗi', err.message || 'Không gửi được báo cáo');
+    }
+    finally{
+      setSubmitting(false)
+    }
+  };
+  const handleResolve = async(id) =>{
+    try{
+      await resolveIncidents(id);
+      setReports(prev => prev.map(r =>  
+        r.id === id ? {...r, status: 'Đã xử lí'} : r
+      ));
+    }
+    catch(err){
+      Alert.alert('Lỗi!', err.message);
+    }
   };
 
   return (
@@ -83,14 +129,20 @@ export default function IncidentReportScreen() {
               onChangeText={setDetail}
               multiline
             />
-            <TouchableOpacity style={styles.submitBtn} onPress={submitReport}>
-              <Text style={styles.submitBtnText}>Gửi báo cáo</Text>
-            </TouchableOpacity>
+            <TouchableOpacity
+                    style={[styles.submitBtn, submitting && { opacity: 0.7 }]}
+                    onPress={submitReport}
+                    disabled={submitting}
+                >
+                    <Text style={styles.submitBtnText}>
+                        {submitting ? 'Đang gửi...' : '📤 Gửi báo cáo'}
+                    </Text>
+                </TouchableOpacity>
           </View>
         )}
 
         {/* Recent reports */}
-        <Text style={styles.sectionTitle}>📋 Các báo cáo gần đây</Text>
+        {/* <Text style={styles.sectionTitle}>📋 Các báo cáo gần đây</Text>
         {recentReports.map((report) => (
           <View key={report.id} style={styles.reportCard}>
             <View style={styles.reportHead}>
@@ -108,7 +160,32 @@ export default function IncidentReportScreen() {
             <Text style={styles.reportDetail}>{report.detail}</Text>
             <Text style={styles.reportMeta}>{report.by} · {report.time}</Text>
           </View>
-        ))}
+        ))} */}
+
+        {loadingReports ? (
+          <ActivityIndicator color = {COLORS.primary} />
+        ): (
+          reports.map(r => (
+            <View key = {r.id} style = {styles.reportCard}>
+              <View style = {styles.reportHeader}>
+                <Text style = {styles.reportType}>{r.type}</Text>
+                <Text style = {styles.reportTime}>{r.time}</Text>
+              </View>
+              <Text style = {styles.reportDetail}>{r.detail}</Text>
+              <View style = {styles.reportFooter}>
+                <Text style = {styles.reportBy}>Bởi: {r.by}</Text>
+                <View style = {styles.reportStatusRow}>
+                  <Text style = {styles.reportStatus}>{r.status}</Text>
+                  {r.status !== 'Đã xử lý' && (
+                    <TouchableOpacity onPress = {() => handleResolve(r.id)}>
+                      <Text style = {styles.resolveBtn}>Đánh dấu xử lí</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              </View>
+            </View>
+          ))
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -162,4 +239,16 @@ const styles = StyleSheet.create({
   reportStatusText: { fontSize: 11, fontWeight: '600' },
   reportDetail: { fontSize: 12, color: '#666', lineHeight: 18, marginBottom: 6 },
   reportMeta: { fontSize: 11, color: '#aaa' },
+  reportHeader: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6,
+  },
+  reportTime: { fontSize: 11, color: '#aaa' },
+  reportFooter: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 6,
+  },
+  reportBy: { fontSize: 11, color: '#888' },
+  reportStatusRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+  },
+  resolveBtn: { fontSize: 12, fontWeight: '600', color: COLORS.primary },
 });
