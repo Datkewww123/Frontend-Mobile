@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ScrollView, TextInput, Switch, Alert } from 'react-native';
 import { router } from 'expo-router';
 import { COLORS } from '../../constants/colors';
+import {createUser} from '../../constants/services/api';
+
 
 const roles = [
   { key: 'picker', label: 'Nhân viên pick' },
@@ -13,6 +15,7 @@ const roles = [
 const zones = ['Khu A', 'Khu B', 'Khu C', 'Khu D'];
 
 export default function CreateAccountScreen() {
+  const [submitting, setSubmitting] = useState(false);
   const [name, setName] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -20,7 +23,7 @@ export default function CreateAccountScreen() {
   const [zone, setZone] = useState('');
   const [canManageTeam, setCanManageTeam] = useState(false);
 
-  const handleCreate = () => {
+  const handleCreate = async() => {
     if (!name || !username || !password || !role || !zone) {
       Alert.alert('Lỗi', 'Vui lòng điền đầy đủ thông tin');
       return;
@@ -32,18 +35,35 @@ export default function CreateAccountScreen() {
         { text: 'Huỷ', style: 'cancel' },
         {
           text: 'Tạo tài khoản',
-          onPress: () => {
-            Alert.alert('Thành công', `Tài khoản "${username}" đã được tạo. Nhân viên có thể đăng nhập ngay.`);
-            setName('');
-            setUsername('');
-            setPassword('');
-            setRole('');
-            setZone('');
-          },
-        },
-      ]
+          onPress: async () => {
+            setSubmitting(true);
+            try{
+              await createUser({
+                fullName: name,
+                username,
+                password,
+                role,
+                zone,
+                canManageTeam,
+              });
+              Alert.alert('Thành công', `Tài khoản "${username}" đã được tạo. Nhân viên có thể đăng nhập ngay.`);
+              setName('');
+              setUsername('');
+              setPassword('');
+              setRole('');
+              setZone('');
+              setCanManageTeam(false);
+              router.back();
+            } catch (err) {
+              Alert.alert('❌ Lỗi', err.message || 'Không tạo được tài khoản');
+            } finally {
+              setSubmitting(false);
+            }
+                },
+            },
+        ]
     );
-  };
+};
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -140,9 +160,15 @@ export default function CreateAccountScreen() {
             />
           </View>
 
-          <TouchableOpacity style={styles.createBtn} onPress={handleCreate}>
-            <Text style={styles.createBtnText}>Tạo tài khoản</Text>
-          </TouchableOpacity>
+          <TouchableOpacity
+                style={[styles.createBtn, submitting && { opacity: 0.7 }]}
+                onPress={handleCreate}
+                disabled={submitting}
+            >
+                <Text style={styles.createBtnText}>
+                    {submitting ? 'Đang tạo...' : '✅ Tạo tài khoản'}
+                </Text>
+            </TouchableOpacity>
         </View>
       </ScrollView>
     </SafeAreaView>
