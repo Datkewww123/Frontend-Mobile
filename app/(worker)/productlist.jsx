@@ -121,6 +121,7 @@ export default function productListScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
+      <View style={styles.contentArea}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
@@ -156,6 +157,7 @@ export default function productListScreen() {
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
         contentContainerStyle={styles.list}
+        style={{ flex: 1 }}
       />
       )}
       {/* Confirm Order Button */}
@@ -167,6 +169,7 @@ export default function productListScreen() {
           </TouchableOpacity>
         </View>
       )}
+      </View>
         <StaffBottomNav />
     </SafeAreaView>
   );
@@ -174,6 +177,7 @@ export default function productListScreen() {
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#f0f4f1' },
+  contentArea: { flex: 1 },
   header: {
     flexDirection: 'row', alignItems: 'center', padding: 16,
     backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#eee',
