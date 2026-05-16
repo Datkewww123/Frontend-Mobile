@@ -1,9 +1,10 @@
-import {Text, View, TouchableOpacity, ScrollView, StyleSheet, FlatList, TextInput} from 'react-native';
+import {Text, View, TouchableOpacity, ScrollView, StyleSheet, FlatList, TextInput, ActivityIndicator, Alert} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {router} from 'expo-router';
 import {COLORS} from '../../constants/colors';
 import StaffBottomNav from '../../components/StaffBottomNav';
-import {useState} from 'react';
+import {useState, useEffect} from 'react';
+import {getProducts} from '../../constants/services/api'
 
 // Tạo mockdata
 const allProducts = [
@@ -53,9 +54,37 @@ function SkuResult ({item}){
 
 export default function SkuSearchScreen(){
     const [query, setQuery] = useState('');
-    const result = allProducts.filter((item) =>
-    item.name.toLowerCase().includes(query.toLowerCase()) || item.sku.toLowerCase().includes(query.toLowerCase())
-    );
+    const [results, setResults] = useState([]);
+    const [loading, setLoading] = useState(false);
+    useEffect(() =>{
+        if (!query.trim()) {
+        setResults([]);
+        return;
+    }
+    const timer = setTimeout(async () => {
+        setLoading(true);
+        try{
+            const res = await getProducts(query.trim());
+            const products = Array.isArray(res) ? res : [];
+            setResults(products.map(p =>({
+                id: p._id,
+                location: p.location || '-',
+                name: p.name,
+                sku: p.sku,
+                zone: p.zone || p.category || ' ',
+                stock: p.stock ?? 0,
+                stockStatus: p.stock === 0 ? 'out' : p.stock < 10 ? 'low' : 'ok',
+
+            })));
+        } catch(err){
+            Alert.alert('Lỗi', 'Không tìm được sản phẩm');
+        }
+        finally{
+            setLoading(false);
+        }
+    }, 500);
+    return () => clearTimeout(timer); // cleanup debounce
+}, [query])
     return(
         <SafeAreaView style = {styles.safeArea}>
             {/* Header */}
@@ -93,37 +122,23 @@ export default function SkuSearchScreen(){
 {/* Số kết quả */}
 {query.length > 0 && (
     <Text style={styles.resultCount}>
-        {result.length} kết quả cho "{query}"
+        {results.length} kết quả cho "{query}"
     </Text>
 )}
 
 {/* Danh sách kết quả */}
-<FlatList
-    data={query.length > 0 ? result : allProducts}
-    keyExtractor={(item) => item.id}
-    renderItem={({ item }) => <SkuResult item={item} />}
-    contentContainerStyle={styles.list}
-
-    ListFooterComponent={
-        <View style={styles.tipCard}>
-            <Text style={styles.tipTitle}>Gợi ý</Text>
-
-            <Text style={styles.tipText}>
-                Bấm vào sản phẩm để xem vị trí kệ chi tiết và dẫn đường trên bản đồ kho.
-            </Text>
-        </View>
-    }
-
-    ListEmptyComponent={
-        <View style={styles.emptyBox}>
-            <Text style={styles.emptyIcon}>🔍</Text>
-
-            <Text style={styles.emptyText}>
-                Không tìm thấy sản phẩm
-            </Text>
-        </View>
-    }
-/>
+{loading ? (
+    <ActivityIndicator color={COLORS.primary} style={{ marginTop: 20 }} />
+) : results.length === 0 && query.trim() ? (
+    <Text style={styles.emptyText}>Không tìm thấy sản phẩm nào</Text>
+) : (
+    <FlatList
+        data={results}
+        keyExtractor={item => item.id}
+        renderItem={({ item }) => <SkuResult item={item} />}
+        contentContainerStyle={styles.list}
+    />
+)}
             {/* Bottom nav */}
                 <StaffBottomNav />
         </SafeAreaView>
