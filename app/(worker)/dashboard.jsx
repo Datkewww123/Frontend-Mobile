@@ -76,13 +76,13 @@ export default function DashboardScreen(){
         Không có đơn hàng hôm nay
     </Text>
 ) : (
-    tasks.map((task) => (
+    tasks.map((task, index) => (
         <TouchableOpacity
-            key={task._id || task.orderId}
+            key={task._id || task.orderId || task.id || index}
             style={styles.orderCard}
             onPress={() => router.push({
                 pathname: '/(worker)/productlist',
-                params: { taskId: task._id }
+                params: { taskId: task._id || task.id || task.orderId }
             })}
         >
             <View style={styles.orderHead}>
