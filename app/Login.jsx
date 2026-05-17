@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { router } from 'expo-router';
 import {
   View,
@@ -32,6 +32,7 @@ export default function LoginScreen() {
   const [otp, setOtp] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const resetTokenRef = useRef('');
 
   const getDashboardRoute = () => {
     if (customerMode) return '/storeorder';
@@ -55,7 +56,8 @@ export default function LoginScreen() {
       if (!otp.trim()) { Alert.alert('Lỗi', 'Vui lòng nhập mã OTP'); return; }
       setSubmitting(true);
       try {
-        await verifyOtp(forgotEmail.trim(), otp.trim());
+        const verifyRes = await verifyOtp(forgotEmail.trim(), otp.trim());
+        resetTokenRef.current = verifyRes?.resetToken || '';
         setForgotStep(3);
       } catch (err) {
         Alert.alert('Lỗi', err.message || 'Mã OTP không hợp lệ');
@@ -65,13 +67,18 @@ export default function LoginScreen() {
         Alert.alert('Lỗi', 'Mật khẩu phải có ít nhất 6 ký tự');
         return;
       }
+      if (!resetTokenRef.current) {
+        Alert.alert('Lỗi', 'Token xác thực không hợp lệ, vui lòng thử lại từ đầu');
+        return;
+      }
       setSubmitting(true);
       try {
-        await resetPassword(otp.trim(), newPassword.trim());
+        await resetPassword(resetTokenRef.current, newPassword.trim());
         Alert.alert('Thành công', 'Đặt lại mật khẩu thành công. Vui lòng đăng nhập lại.');
         setForgotStep(0);
         setOtp('');
         setNewPassword('');
+        resetTokenRef.current = '';
       } catch (err) {
         Alert.alert('Lỗi', err.message || 'Không thể đặt lại mật khẩu');
       } finally { setSubmitting(false); }
@@ -110,7 +117,7 @@ export default function LoginScreen() {
             res.accessToken,
             userData.assignedZone,
         );
-        router.push(getDashboardRoute());
+        router.replace(getDashboardRoute());
     } catch (err) {
         Alert.alert('Đăng nhập thất bại', err.message || 'Sai tài khoản hoặc mật khẩu!');
     } finally {
