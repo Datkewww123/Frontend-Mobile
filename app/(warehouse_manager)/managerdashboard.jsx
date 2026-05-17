@@ -72,41 +72,58 @@ export default function ManagerDashboardScreen(){
     const [stats, setStats] = useState(null);
     const [incidents, setIncidents] = useState([]);
     const [loading, setLoading] = useState(true);
-    const displayKpis = stats ? [
-        { icon: '✅', value: String(stats.totalPickedSku || 0),
+    const s = stats || {};
+    const totals = s.totals || {};
+    const totalPickedSku = totals.itemsPicked ?? 0;
+    const activeWorkers  = s.staffPerformance?.length ?? 0;
+    const totalWorkers   = (s.staffPerformance?.length ?? 0) + 0;
+    const pendingOrders  = totals.pendingOrders ?? 0;
+    const zoneData       = null;
+
+    const displayKpis = [
+        { icon: '✅', value: String(totalPickedSku),
           label: 'SKU đã pick', color: COLORS.successBg, textColor: COLORS.primary },
-        { icon: '👥', value: `${stats.activeWorkers || 0}/${stats.totalWorkers || 0}`,
+        { icon: '👥', value: `${activeWorkers}/${totalWorkers}`,
           label: 'NV đang làm', color: '#e3f2fd', textColor: '#1565c0' },
         { icon: '⚠️', value: String(incidents.length),
           label: 'Báo thiếu', color: COLORS.warningBg, textColor: '#e65100' },
-        { icon: '📦', value: String(stats.pendingOrders || 0),
+        { icon: '📦', value: String(pendingOrders),
           label: 'Đơn tồn', color: '#f3e5f5', textColor: '#7b1fa2' },
-    ] : kpis;
+    ];
+    const displayZones = Array.isArray(zoneData) && zoneData.length > 0
+        ? zoneData.map(z => ({
+            icon: z.icon || '📦',
+            name: z.name || z.zoneName || z.zone_name || '',
+            pct:  z.pct ?? z.percentage ?? z.completion ?? 0,
+            color: z.color || COLORS.primary,
+          }))
+        : zones;
     const displayShortages = incidents.length > 0
     ? incidents.slice(0, 3).map(inc => ({
         id: inc._id,
         icon: '⚠️',
-        name: inc.productName || 'Sản phẩm',
-        loc: inc.location || '',
-        who: `${inc.reportedBy || ''} · ${inc.time || ''}`,
+        name: inc.productName || inc.product_name || 'Sản phẩm',
+        loc: inc.location || inc.location_name || '',
+        who: `${inc.reportedBy || inc.reported_by || ''} · ${inc.time || inc.created_at || ''}`,
     }))
     : shortages;
     useEffect(() => {
         async function fetchAll(){
             try{
-            const [statsRes, incidentsRes] = await Promise.all([
-                getDashboardStatus(),
-                getIncidents(),
-            ]);
+            const statsRes = await getDashboardStatus();
+            console.log('📊 Dashboard stats:', JSON.stringify(statsRes, null, 2));
             setStats(statsRes);
+        } catch (err) {
+            console.log('❌ Stats error:', err.message);
+        }
+        try {
+            const incidentsRes = await getIncidents();
+            console.log('⚠️ Incidents:', JSON.stringify(incidentsRes, null, 2));
             setIncidents(Array.isArray(incidentsRes) ? incidentsRes: [] );
+        } catch (err) {
+            console.log('❌ Incidents error:', err.message);
         }
-        catch (err){
-            Alert.alert('Lỗi', 'Không tải được dữ liệu');
-        }
-        finally {
-            setLoading(false)
-        }
+        setLoading(false);
     }
         fetchAll()
     }, []);
@@ -122,11 +139,7 @@ export default function ManagerDashboardScreen(){
 
             {/* Header */}
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => router.back()}>
-                    <Text style={styles.backBtn}>‹</Text>
-                </TouchableOpacity>
                 <Text style={styles.headerTitle}>Manager Dashboard</Text>
-                {/* Live badge */}
                 <View style={styles.liveBadge}>
                     <View style={styles.liveDot} />
                     <Text style={styles.liveText}>LIVE</Text>
@@ -143,7 +156,7 @@ export default function ManagerDashboardScreen(){
                 {/* Hoàn thành theo khu vực */}
                 <View style = {styles.card}>
                     <Text style = {styles.cardTitle}>Hoàn thành theo khu vực</Text>
-                    {zones.map((zone) => (
+                    {displayZones.map((zone) => (
                         <ZoneRow key = {zone.name} zone = {zone} />
                     ))}
                 </View>
