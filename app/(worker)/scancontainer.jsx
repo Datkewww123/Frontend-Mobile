@@ -3,6 +3,11 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 import {router} from 'expo-router';
 import {COLORS} from '../../constants/colors';
 import StaffBottomNav from '../../components/StaffBottomNav';
+import { useState } from 'react';
+import { Modal, Alert } from 'react-native';
+import { useLocalSearchParams } from 'expo-router';
+import BarcodeScanner from '../../components/BarcodeScanner';
+import { packItem } from '../../constants/services/api';
 
 
 //Mockdata cho 1 component
@@ -22,6 +27,58 @@ const scanData ={
 }
 
 export default function ScancontainerScreen(){
+    const params = useLocalSearchParams();
+    const taskId      = params.taskId      || params.productId || '';
+    const binCode     = params.binCode     || '';
+    const productQty  = params.productQty  || params.qty || '1';
+    const productName = params.productName || params.name || scanData.name;
+    const productSku  = params.productSku  || params.sku  || scanData.sku;
+    const productUnit = params.productUnit || params.unit || scanData.unit;
+
+    const displayData = {
+    location:       params.location       || scanData.location,
+    locationDetail: params.locationDetail || scanData.locationDetail,
+    sku:            productSku,
+    name:           productName,
+    qty:            productQty,
+    unit:           productUnit,
+    orderId:        params.orderId        || scanData.orderId,
+    client:         params.client         || scanData.client,
+    binCode:        binCode               || scanData.binCode,
+    binLocation:    params.binLocation    || scanData.binLocation,
+};
+    const [showCamera, setShowCamera]   = useState(false);
+    const [submitting, setSubmitting]   = useState(false);
+    const handleBinScanned = async (scannedCode) => {
+    setShowCamera(false);
+
+    if (scannedCode !== binCode) {
+        Alert.alert(
+            '❌ Sai thùng',
+            `Mã quét: ${scannedCode}\nMã cần: ${binCode}`,
+            [{ text: 'Quét lại', onPress: () => setShowCamera(true) }]
+        );
+        return;
+    }
+    if (!taskId) {
+        Alert.alert('Lỗi', 'Thiếu thông tin nhiệm vụ, vui lòng thử lại');
+        return;
+    }
+    setSubmitting(true);
+    try {
+        await packItem(taskId, binCode, parseInt(productQty, 10));
+        Alert.alert(
+            '✅ Hoàn thành!',
+            `Đã bỏ ${productQty} ${displayData.unit} vào ${binCode}`,
+            [{ text: 'Về danh sách', onPress: () => router.back() }]
+        );
+    } catch (err) {
+        Alert.alert('Lỗi', err.message || 'Không thể xác nhận');
+    } finally {
+        setSubmitting(false);
+    }
+};
+
     return(
         <SafeAreaView style = {styles.safeArea}>
             <View style = {styles.header}>
@@ -37,8 +94,8 @@ export default function ScancontainerScreen(){
             {/* Banner vị trí kệ */}
             <View style ={styles.locationCard}>
             <Text style = {styles.locationLabel}>📍 Vị trí kệ</Text>
-            <Text style ={styles.locationCode}>{scanData.location}</Text>
-            <Text style = {styles.locationDetail}>{scanData.locationDetail}</Text>
+            <Text style ={styles.locationCode}>{displayData.location}</Text>
+            <Text style = {styles.locationDetail}>{displayData.locationDetail}</Text>
             {/* Thanh bước 2 đang làm */}
             <View style = {styles.stepRow}>
                 <View style ={[styles.stepDot, styles.stepDone]} />
@@ -51,7 +108,7 @@ export default function ScancontainerScreen(){
                 <Text style ={styles.successIcon}>✅</Text>
                 <View style ={styles.successBody}>
                     <Text style ={styles.successTitle}>Đúng sản phẩm rồi</Text>
-                    <Text style ={styles.successSub}>{scanData.name} {scanData.sku} đã được xác nhận</Text>
+                    <Text style ={styles.successSub}>{displayData.name} {displayData.sku} đã được xác nhận</Text>
                 </View>
             </View>
             {/* Card thùng bin */}
@@ -61,14 +118,18 @@ export default function ScancontainerScreen(){
             onPress={() => router.push('/containeraudit')}
 >
                 <Text style = {styles.binLabel}>Bỏ hàng vào thùng</Text>
-                <Text style = {styles.binCode}>{scanData.binCode}</Text>
-                <Text style = {styles.binSub}>{scanData.qty} {scanData.unit} - Đơn {scanData.orderId} {scanData.client}</Text>
+                <Text style = {styles.binCode}>{displayData.binCode}</Text>
+                <Text style = {styles.binSub}>{displayData.qty} {displayData.unit} - Đơn {displayData.orderId} {displayData.client}</Text>
             </TouchableOpacity>
             {/* Nút quét mã thùng */}
-            <TouchableOpacity 
-            style ={styles.btnPrimary}
-            onPress = {() => router.push('/dashboard')}>
-                <Text style ={styles.btnPrimaryText}>QUÉT MÃ THÙNG ĐỂ XÁC NHẬN</Text>
+            <TouchableOpacity
+                style={[styles.btnPrimary, submitting && { opacity: 0.7 }]}
+                onPress={() => setShowCamera(true)}
+                disabled={submitting}
+            >
+                <Text style={styles.btnPrimaryText}>
+                    {submitting ? 'Đang xác nhận...' : '📷 QUÉT MÃ THÙNG ĐỂ XÁC NHẬN'}
+                </Text>
             </TouchableOpacity>
             {/* Sai BIN / Chuyển thùng */}
             <TouchableOpacity
@@ -86,6 +147,13 @@ export default function ScancontainerScreen(){
                 <Text style = {styles.btnOutlineText}>Quét lại mã sản phẩm</Text>
             </TouchableOpacity>
             </ScrollView>
+            <Modal visible={showCamera} animationType="slide">
+                <BarcodeScanner
+                    expectedCode={binCode}
+                    onScanned={handleBinScanned}
+                    onClose={() => setShowCamera(false)}
+                />
+            </Modal>
             {/* Bottom Navigation */}
             <StaffBottomNav />
         </SafeAreaView>
