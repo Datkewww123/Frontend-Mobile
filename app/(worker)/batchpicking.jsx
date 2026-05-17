@@ -89,22 +89,20 @@ export default function BatchPickingScreen() {
             try{
                 const res = await getAssignedTasks();
                 const tasks = Array.isArray(res) ? res : [];
-                const allItems = tasks.flatMap((t, ti) => 
-                (t.item || [])
-                .filter(i => i.status !== 'picked')
-                .map((i, idx) => ({
-                    id: i._id,
-                    location: i.location || '',
-                    name: `${i.productName || i.name} (${i.quantity} ${i.unit || 'cái'})`,
+                const allItems = tasks
+                .filter(t => t.status !== 'completed')
+                .map((t, ti) => ({
+                    id: t.id,
+                    location: t.location?.name || '',
+                    name: `${t.orderDetail?.product?.name || 'Sản phẩm'} (${t.quantityToPick} cái)`,
                     bins: [{
                         color: '#fff3e0',
                          text: '#e65100',
-                        label: `🟡 ${t.containerCode || 'BIN-??'}`
+                        label: `🟡 BIN-${t.orderDetail?.order?.id || t.id}`
                     }],
                     done: false,
-                    isCurrent: ti === 0 && idx === 0
-                }))
-                );
+                    isCurrent: ti === 0
+                }));
                 if(allItems.length > 0 ) {
                     setItems(allItems);
                 }
