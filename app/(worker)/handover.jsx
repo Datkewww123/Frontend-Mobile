@@ -84,9 +84,7 @@ export default function HandOverScreen(){
     const handleHandover = async () => {
         setSubmitting(true);
         try {
-            await handoverTask({
-                notes: notes.map(n => n.text),
-            });
+            await handoverTask(0, 0);
             Alert.alert('✅ Thành công', 'Bàn giao ca thành công');
             router.replace('/(worker)/dashboard');
         } catch (err) {
