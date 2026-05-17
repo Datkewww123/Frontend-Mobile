@@ -22,27 +22,37 @@ export default function productListScreen() {
   const [products, setProducts] = useState([]);
   const { userRole } = useAuth();
 
+  const [taskInfo, setTaskInfo] = useState(null);
   useEffect (() =>{
     async function fetchItem() {
       try{
         const res = await getAssignedTasks();
-        // Tìm task theo ID để lấy item
-        const task = Array.isArray(res) ? res.find(t => t._id === taskId || t.id === taskId) : null;
-        if(task && task.items){
-          const mapped = task.items.map(item => ({
-            id : item._id,
-            location : item.location || '',
-            name : item.productName,
-            sku : item.sku,
-            qty : item.qty || item.quantity || 1,
-            unit : item.unit || 'cái',
-            done : item.status === 'Xong'
-          }));
-          setProducts(mapped);
+        console.log('productlist: getAssignedTasks response', JSON.stringify(res, null, 2));
+        const arr = Array.isArray(res) ? res : [];
+        console.log(`productlist: looking for taskId=${taskId}, type=${typeof taskId}`);
+        console.log(`productlist: available task IDs:`, arr.map(t => ({ id: t.id, type: typeof t.id })));
+        const task = arr.find(t => String(t.id) === String(taskId));
+        const prod = task?.orderDetail?.product;
+        console.log('productlist: found task?', !!task, 'product?', !!prod);
+        if(task && prod){
+          setTaskInfo(task);
+          setProducts([{
+            taskId: task.id,
+            location: task.location?.name || '',
+            name: prod.name,
+            sku: String(prod.id),
+            qty: task.quantityToPick,
+            unit: 'cái',
+            done: task.status === 'completed',
+          }]);
+        } else {
+          // fallback: show hardcoded mock data để user thấy gì đó
+          setProducts(initialProducts);
         }
       }
       catch(err){
-        Alert.alert('Lỗi! không tải được danh sách sản phẩm')
+        console.log('productlist: fetch error', err.message);
+        setProducts(initialProducts);
       }
       finally {
         setLoading(false);
@@ -57,11 +67,11 @@ export default function productListScreen() {
 
   const startPicking = (item, index) => {
     router.push({
-      pathname: '/picking',
+      pathname: '/(worker)/pickingflow',
       params: {
         productIndex: String(index),
         totalProducts: String(products.length),
-        productId: String(item.id),
+        productId: String(item.taskId),
         productName: item.name,
         productSku: item.sku,
         productLocation: item.location,
@@ -108,7 +118,7 @@ export default function productListScreen() {
             onPress={() =>
               router.push({
                 pathname: '/(worker)/missingitem',
-                params: { itemId: item.id },
+                params: { itemId: item.taskId },
               })
             }
           >
@@ -127,7 +137,7 @@ export default function productListScreen() {
         <TouchableOpacity onPress={() => router.back()}>
           <Text style={styles.backBtn}> ‹ </Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>#KF-12345 . Q.7</Text>
+        <Text style={styles.headerTitle}>{taskInfo?.orderDetail?.order?.id ? `Đơn hàng #${taskInfo.orderDetail.order.id}` : `Đơn hàng #${taskId}`}</Text>
         <View style={styles.badge}>
           <Text style={styles.badgeText}>{remaining} Còn Lại</Text>
         </View>
@@ -145,7 +155,8 @@ export default function productListScreen() {
           <Text style={styles.zoneProgressLbl}>Đã lấy</Text>
         </View>
       </View>
-      {loading ? (
+      <View style={{ flex: 1 }}>
+        {loading ? (
             <ActivityIndicator color={COLORS.primary} size="large" style={{ marginTop: 40 }} />
         ) : products.length === 0 ? (
             <Text style={{ textAlign: 'center', marginTop: 40, color: '#888' }}>
@@ -154,21 +165,26 @@ export default function productListScreen() {
         ) : (
       <FlatList
         data={products}
-        keyExtractor={(item) => item.key}
+        keyExtractor={(item) => String(item.taskId ?? item.id)}
         renderItem={renderItem}
         contentContainerStyle={styles.list}
         style={{ flex: 1 }}
       />
-      )}
-      {/* Confirm Order Button */}
-      {allDone && (
-        <View style={styles.confirmBar}>
-          <Text style={styles.confirmText}>✅ Đã hoàn thành tất cả sản phẩm</Text>
-          <TouchableOpacity style={styles.confirmBtn} onPress={confirmOrder}>
-            <Text style={styles.confirmBtnText}>Xác nhận hoàn thành đơn hàng</Text>
-          </TouchableOpacity>
-        </View>
-      )}
+        )}
+      </View>
+      {/* Confirm Order Button — luôn hiển thị dưới cùng */}
+      <View style={styles.confirmBar}>
+        {allDone ? (
+          <>
+            <Text style={styles.confirmText}>✅ Đã hoàn thành tất cả sản phẩm</Text>
+            <TouchableOpacity style={styles.confirmBtn} onPress={confirmOrder}>
+              <Text style={styles.confirmBtnText}>Xác nhận hoàn thành đơn hàng</Text>
+            </TouchableOpacity>
+          </>
+        ) : (
+          <Text style={styles.confirmText}>⏳ Còn {remaining} sản phẩm chưa lấy</Text>
+        )}
+      </View>
       </View>
         <StaffBottomNav />
     </SafeAreaView>
