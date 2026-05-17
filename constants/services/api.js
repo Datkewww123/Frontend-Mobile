@@ -6,9 +6,10 @@ let authToken = null;
 export function setToken(token){authToken = token;}
 export function getToken(){return authToken;}
 
-async function request(method, endpoint, body = null) {
+async function request(method, endpoint, body = null, extraHeaders = {}) {
     const headers = {};
     if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
+    Object.assign(headers, extraHeaders);
     const config = { method, headers };
     if (body instanceof FormData) {
         config.body = body;
@@ -22,8 +23,6 @@ async function request(method, endpoint, body = null) {
 
     if (!res.ok) throw new Error(json.message || 'Lỗi server');
 
-    // Server trả về { success, statusCode, message, metadata }
-    // → trả về metadata để screen dùng trực tiếp
     return json.metadata ?? json;
 }
 // AUTH
@@ -36,8 +35,8 @@ export const forgetPassword = (email) =>
 
 export const verifyOtp = (email, otp) =>
     request('POST', '/auth/user/verify-otp', { email, otp });
-export const resetPassword = (token, newPassword) =>
-    request('PATCH', '/auth/user/reset-password', { token, newPassword });
+export const resetPassword = (resetToken, newPassword) =>
+    request('PATCH', '/auth/user/reset-password', { password: newPassword }, { 'reset-token': resetToken });
 // Customer
 export const customerLogin = (email, password) =>
     request ('POST', '/auth/customer/login', {email, password});
@@ -51,27 +50,27 @@ export const updateProfile = (data) =>
 // PICKING
 export const getAssignedTasks = () =>
     request ('GET', '/admin/picking/assigned');
-export const packItem = (itemId, containerCode, quantity) =>
-    request ('POST', '/admin/picking/pack', {itemId, containerCode,quantity});
-export const moveItem = (itemId, fromContainer, toContainer) =>
-    request ('POST', '/admin/picking/move', {itemId, fromContainer, toContainer});
-export const reportIncident = (itemId, reason, photoUri) => {
-    const body = { itemId, reason, note: '' };
+export const packItem = (taskId, containerCode, quantity) =>
+    request ('POST', '/admin/picking/pack', {taskId, containerCode, quantity});
+export const moveItem = (productId, oldContainerCode, newContainerCode, quantity = 1) =>
+    request ('POST', '/admin/picking/move', {productId, oldContainerCode, newContainerCode, quantity});
+export const reportIncident = (taskId, reason, photoUri) => {
+    const body = { taskId, reason, photoUrl: photoUri || '' };
     if (photoUri) {
         const formData = new FormData();
         formData.append('file', { uri: photoUri, type: 'image/jpeg', name: 'incident.jpg' });
-        formData.append('itemId', itemId);
+        formData.append('taskId', String(taskId));
         formData.append('reason', reason);
         return request('POST', '/admin/picking/incident', formData);
     }
     return request('POST', '/admin/picking/incident', body);
 };
-export const handoverTask =(data) =>
-    request ('POST', '/admin/picking/handover', data)
+export const handoverTask = (taskId, nextStaffId) =>
+    request ('POST', '/admin/picking/handover', { taskId, nextStaffId })
 export const getIncidents = () =>
     request ('GET', '/admin/picking/incidents');
 export const resolveIncident = (id) =>
-    request ('POST', `/admin/picking/incidents/${id}/resolve`);
+    request ('POST', `/admin/picking/incident/${id}/resolve`);
 export const traceContainer = (containerCode) =>
     request ('GET', `/admin/picking/trace/${containerCode}`);
 // ORDERS
@@ -79,15 +78,15 @@ export const getOrders = () =>
     request ('GET', `/admin/orders`);
 export const updateOrderStatus = (id, status) =>
     request('PATCH', `/admin/orders/${id}`, {status});
-export const createOrder = (items) =>
-    request ('POST', '/client/orders', {items});
+export const createOrder = (products, address = '') =>
+    request ('POST', '/client/orders', { products, address });
 export const getClientOrders = () =>
     request('GET', '/client/orders');
 // PRODUCTS
 export const getProducts = (query = '') =>
     request ('GET', `/public/products${query ? `?search=${query}`: ''}`)
 export const getByProductId = (id) =>
-    request ('GET', `public/prodcuts/${id}`);
+    request ('GET', `/public/products/${id}`);
 // Admin
 export const getUsers = () =>
     request ('GET', '/admin/users');
