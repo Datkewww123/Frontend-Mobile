@@ -87,15 +87,15 @@ export default function HistoryScreen(){
                 const res = await getAssignedTasks(); // gọi API
                 const tasks = Array.isArray(res) ? res : []; // kiểm tra xem dữ liệu có phải mảng k 
                 const grouped = {}; // tạo object để theo nhóm ngày
-                tasks.forEach(task => { // duyệt từng task 
-                    const date = task.date ? new Date(task.date).toLocaleDateString('vi-VN') : 'Hôm nay'; // xử lí ngày nếu task có date, hàm toLocal... dùng để format theo kiểu VN
-                    if(!grouped[date]) grouped[date] = []; // nếu chưa tồn tại ngày thì tạo mảng 
+                tasks.forEach(task => {
+                    const date = task.createdAt ? new Date(task.createdAt).toLocaleDateString('vi-VN') : 'Hôm nay';
+                    if(!grouped[date]) grouped[date] = [];
                     grouped[date].push({
-                        id : task._id,
+                        id : task.id,
                         time: task.updatedAt ? new Date(task.updatedAt).toLocaleTimeString('vi-VN', {hour: '2-digit', minute: '2-digit'}): '',
                         icon: task.status === 'completed' ? '✅' :'📦',
                         type : 'pick',
-                        sub: `${task.pickedCount} / ${task.totalCount} SKU`,
+                        sub: `${task.quantityPicked || 0} / ${task.quantityToPick || 0} SKU`,
                         status: task.status === 'completed' ? 'ok' : 'skip',
                         statusLabel: task.status === 'completed' ? '✓ OK' : 'Đang làm',
                     });
