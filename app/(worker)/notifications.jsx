@@ -2,7 +2,7 @@ import {Text, View, SectionList, StyleSheet, TouchableOpacity} from 'react-nativ
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {useState, useEffect} from 'react';
 import {ActivityIndicator, Alert} from 'react-native';
-import {getIncidents} from '../../constants/services/api'
+import {getAssignedTasks} from '../../constants/services/api'
 import {router, usePathname} from 'expo-router';
 import {COLORS} from '../../constants/colors';
 import StaffBottomNav from '../../components/StaffBottomNav';
@@ -95,26 +95,26 @@ export default function NotificationScreen(){
     useEffect(() =>{
         async function fetchNotification(){
             try{
-            const res = await getIncidents();
-            const incidents = Array.isArray(res) ? res : [];
-            const newOnes = incidents
-            .filter(i => i.status !== 'resolved')
-            .map(i => ({
-                id: i._id,
-                icon: '⚠️', iconBg: '#fff3e0',
-                title: `Sự cố ${i.type || 'Thiếu hàng'}`,
-                message: i.note || i.detail || ' ',
-                time: i.createdAt ? new Date(i.createdAt).toLocaleTimeString('vi-VN') : ' ',
+            const res = await getAssignedTasks();
+            const tasks = Array.isArray(res) ? res : [];
+            const newOnes = tasks
+            .filter(t => t.status !== 'completed')
+            .map((t, i) => ({
+                id: `new-${t.id}`,
+                icon: '📦', iconBg: '#e3f2fd',
+                title: `Đang pick: ${t.orderDetail?.product?.name || 'Sản phẩm'}`,
+                message: `${t.quantityPicked}/${t.quantityToPick} · ${t.orderDetail?.order?.branch?.name || ''}`,
+                time: t.createdAt ? new Date(t.createdAt).toLocaleTimeString('vi-VN') : ' ',
                 unread: true,
             }));
-            const old = incidents
-            .filter(i => i.status === 'resolved')
-            .map(i => ({
-                id: i._id,
+            const old = tasks
+            .filter(t => t.status === 'completed')
+            .map(t => ({
+                id: `old-${t.id}`,
                 icon: '✅', iconBg: '#e8f5e9',
-                title: `Đã xử lí ${i.type || ' '}`,
-                message: i.note || '',
-                time: i.updatedAt ? new Date(i.updatedAt).toLocaleTimeString('vi-VN') : ' ',
+                title: `Hoàn thành: ${t.orderDetail?.product?.name || 'Sản phẩm'}`,
+                message: `${t.quantityToPick} cái · ${t.orderDetail?.order?.branch?.name || ''}`,
+                time: t.updatedAt ? new Date(t.updatedAt).toLocaleTimeString('vi-VN') : ' ',
                 unread: false
             }));
             if(newOnes.length > 0 || old.length > 0){
