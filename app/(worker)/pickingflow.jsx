@@ -69,16 +69,8 @@ const handleCameraScanned = (data) => {
     setSubmitting(true);
     try {
         await packItem(productId, selectedBin, quantity);
-        const nextIndex = productIndex + 1;
-        if (nextIndex < totalProducts) {
-            router.replace({
-                pathname: '/(worker)/pickingflow',
-                params: { ...params, productIndex: String(nextIndex) },
-            });
-        } else {
-            Alert.alert('Hoàn thành', 'Đã pick xong tất cả sản phẩm!');
-            router.replace('/(worker)/productlist');
-        }
+        Alert.alert('✅ Thành công', 'Đã pick xong sản phẩm!');
+        router.replace({ pathname: '/(worker)/productlist', params: { taskId: productId } });
     } catch (err) {
         Alert.alert('Lỗi', err.message || 'Không thể xác nhận pack hàng');
     } finally {
@@ -276,7 +268,7 @@ const handleCameraScanned = (data) => {
       </View>
       </ScrollView>
                   <Modal visible={showCamera} animationType="slide">
-                <BarcodeScanner
+                <BarCodeScanner
                     expectedCode={productSku}
                     onScanned={handleCameraScanned}
                     onClose={() => setShowCamera(false)}
