@@ -79,8 +79,8 @@ export default function EndShiftScreen(){
             try{
                 const res = await getAssignedTasks();
                 const tasks = Array.isArray(res) ? res : [];
-                const totalSku = tasks.reduce((sum, t) => sum + (t.pickedCount || 0), 0);
-                const totalItems = tasks.reduce((sum, t) => sum + (t.totalCount ||0), 0);
+                const totalSku = tasks.reduce((sum, t) => sum + (t.quantityPicked || 0), 0);
+                const totalItems = tasks.reduce((sum, t) => sum + (t.quantityToPick || 0), 0);
                 const pct = totalItems > 0 ? Math.round((totalSku / totalItems) * 100) : 0;
                 setApiStats ({
                     score: pct,
