@@ -16,9 +16,12 @@ export default function StoreListScreen() {
   const fetchStores = async () => {
     try {
       const res = await getCustomers(1, 200);
-      setStores(res.data || []);
+      console.log('🏪 Store list response:', JSON.stringify(res, null, 2));
+      const list = res?.data ?? res?.customers ?? res?.items ?? (Array.isArray(res) ? res : []);
+      setStores(list);
     } catch (err) {
-      Alert.alert('Lỗi', 'Không thể tải danh sách cửa hàng');
+      console.log('🏪 Store list error:', err.message);
+      Alert.alert('Lỗi', `Không thể tải: ${err.message}`);
     } finally {
       setLoading(false);
     }
