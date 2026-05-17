@@ -5,10 +5,13 @@ import { router, useLocalSearchParams } from 'expo-router';
 import {packItem} from '../../constants/services/api'
 import { COLORS } from '../../constants/colors';
 import StaffBottomNav from '../../components/StaffBottomNav';
+import {Modal} from 'react-native' // cho phép camera chiếm trọn cả màn hình
+import BarCodeScanner from '../../components/BarcodeScanner';
 
 const bins = ['BIN-401', 'BIN-402', 'BIN-403', 'BIN-404', 'BIN-405', 'BIN-406'];
 
 export default function PickingFlowScreen() {
+  const [showCamera, setShowCamera] = useState(false)
   const [submitting, setSubmitting] = useState(false);
   const params = useLocalSearchParams();
   const productIndex = parseInt((params.productIndex || '0'), 10);
@@ -29,15 +32,12 @@ export default function PickingFlowScreen() {
 
   const scanAnim = useRef(new Animated.Value(1)).current;
   const flashAnim = useRef(new Animated.Value(0)).current;
-  const simulateScan = () => {
-    Animated.sequence([
-      Animated.timing(scanAnim, { toValue: 0.3, duration: 100, useNativeDriver: true }),
-      Animated.timing(scanAnim, { toValue: 1, duration: 300, useNativeDriver: true }),
-    ]).start(() => {
-      setBarcode(productSku);
-      setScanned(true);
-    });
-  };
+  //  THÊM hàm handleCameraScanned 
+const handleCameraScanned = (data) => {
+    setShowCamera(false);
+    setBarcode(data);
+    setScanned(true);
+};
 
   const handleManualScan = () => {
     if (!barcode.trim()) {
@@ -139,9 +139,12 @@ export default function PickingFlowScreen() {
 
             {!scanned ? (
               <>
-                <TouchableOpacity style={styles.scanBtn} onPress={simulateScan}>
-                  <Text style={styles.scanBtnText}>📸 Quét mã</Text>
-                </TouchableOpacity>
+                <TouchableOpacity
+                      style={styles.scanBtn}
+                      onPress={() => setShowCamera(true)}
+                  >
+                      <Text style={styles.scanBtnText}>📷 Mở camera quét mã</Text>
+                  </TouchableOpacity>
                 <Text style={styles.orText}>— hoặc —</Text>
                 <View style={styles.manualRow}>
                   <TextInput
@@ -272,6 +275,13 @@ export default function PickingFlowScreen() {
         )}
       </View>
       </ScrollView>
+                  <Modal visible={showCamera} animationType="slide">
+                <BarcodeScanner
+                    expectedCode={productSku}
+                    onScanned={handleCameraScanned}
+                    onClose={() => setShowCamera(false)}
+                />
+            </Modal>
         <StaffBottomNav />
     </SafeAreaView>
   );
