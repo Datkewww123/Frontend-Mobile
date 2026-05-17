@@ -19,6 +19,9 @@ function LayoutContent() {
     const isLoginScreen =
         pathname === '/Login';
 
+    const isPickingFlow =
+        pathname.includes('pickingflow');
+
     if (!isLoggedIn && !isLoginScreen) {
 
         return <Redirect href="/Login" />;
@@ -30,10 +33,12 @@ function LayoutContent() {
             <Stack
                 screenOptions={{
                     headerShown: false,
+                    animation: 'slide_from_right',
+                    animationDuration: 200,
                 }}
             />
 
-            {isLoggedIn && !isLoginScreen && userRole === 'staff' && (
+            {isLoggedIn && !isLoginScreen && !isPickingFlow && userRole === 'staff' && (
                 <FloatingAssistiveButton />
             )}
 
