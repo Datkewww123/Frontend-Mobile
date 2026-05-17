@@ -1,10 +1,11 @@
-import {Text, View, ScrollView, TouchableOpacity,StyleSheet,Alert} from 'react-native';
+import {Text, View, ScrollView, TouchableOpacity,StyleSheet,Alert,Image} from 'react-native';
 import {useState} from 'react'
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {router, useLocalSearchParams} from 'expo-router';
 import {COLORS} from '../../constants/colors';
 import StaffBottomNav from '../../components/StaffBottomNav';
 import {reportIncident} from '../../constants/services/api';
+import * as ImagePicker from 'expo-image-picker';
 
 
 const reasons = [   
@@ -20,11 +21,33 @@ const reasons = [
 ]
 
 export default function MissingItemScreen(){
+        const [photoUri, setPhotoUri] = useState(null);
         const params = useLocalSearchParams();
         const itemId = params.itemId;
         const [submitting, setSubmitting] = useState(false);
         const [photoTaken, setPhotoTaken] = useState(false);
         const [reason, setReason] = useState(null);
+const handleTakePhoto = async () => {
+    // Xin quyền camera
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') {
+        Alert.alert('Lỗi', 'Cần quyền camera để chụp ảnh');
+        return;
+    }
+
+    // Mở camera chụp ảnh
+    const result = await ImagePicker.launchCameraAsync({
+        allowsEditing: false,
+        quality: 0.8,
+        // quality: 0.8 = giảm chất lượng 20% để tiết kiệm dung lượng
+    });
+
+    if (!result.canceled) {
+        setPhotoUri(result.assets[0].uri);
+        setPhotoTaken(true);
+        // Lưu URI ảnh để sau này upload lên server
+    }
+};
        async function handleSubmit(){
         if(!photoTaken){
             Alert.alert('Lỗi!', 'Vui lòng chụp màn hình minh chứng trước');
@@ -36,7 +59,7 @@ export default function MissingItemScreen(){
         }
         setSubmitting(true);
         try{
-            await reportIncident(itemId, reason, '');
+            await reportIncident(itemId, reason, photoUri || '');
                 Alert.alert('Thành công!' ,'Báo cáo đã được gửi đi')
                 router.back();
         }
@@ -65,28 +88,34 @@ export default function MissingItemScreen(){
             <Text style = {styles.sectionLabel}>
                 CHỤP ẢNH MINH CHỨNG
             </Text>
-            {/* Khung giả camera */}
-            <TouchableOpacity 
-            style = {styles.cameraBox}
-            onPress = {() => setPhotoTaken(true)}>
-                {
-                    photoTaken ? (
-                        <View style = {styles.photoDone}>
-                            <Text style = {styles.photoDoneIcon}>✅</Text>
-                            <Text style = {styles.photoDoneText}>Đã chụp ảnh</Text>
+            {/* Khung camera */}
+            {photoTaken ? (
+                <View style={styles.photoDone}>
+                    {photoUri && (
+                        <Image
+                            source={{ uri: photoUri }}
+                            style={{ width: '100%', height: 160, borderRadius: 12 }}
+                        />
+                    )}
+                    <Text style={styles.photoDoneText}>✅ Đã chụp ảnh</Text>
+                    <TouchableOpacity onPress={handleTakePhoto}>
+                        <Text style={{ color: COLORS.primary, marginTop: 8, fontWeight: '600' }}>Chụp lại</Text>
+                    </TouchableOpacity>
+                </View>
+            ) : (
+                <TouchableOpacity
+                    style={styles.cameraBox}
+                    onPress={handleTakePhoto}
+                >
+                    <View style={styles.cameraInner}>
+                        <Text style={styles.cameraTitle}>Chụp ảnh vị trí trống</Text>
+                        <Text style={styles.cameraSub}>Hướng camera vào kệ hàng đang trống</Text>
+                        <View style={styles.cameraBtn}>
+                            <Text style={styles.cameraBtnIcon}>📸</Text>
                         </View>
-                    ):
-                    (
-                        <View style ={styles.cameraInner}>
-                            <Text style = {styles.cameraTitle}>Chụp ảnh vị trí trống</Text>
-                            <Text style = {styles.cameraSub}>Hướng camera vào kệ hàng đang trống</Text>
-                            <View style = {styles.cameraBtn}>
-                                <Text style = {styles.cameraBtnIcon}>📸</Text>
-                            </View>
-                        </View>
-                    )
-                }
-            </TouchableOpacity>
+                    </View>
+                </TouchableOpacity>
+            )}
             {/* Khu vực để chọn lí do */}
             <Text style = {styles.sectionLabel}>Lí do thiếu hàng:</Text>
             {/* Danh sách li do thiếu hàng, dùng map thay vì flatlist vì chỉ có 3 item */}
@@ -110,8 +139,7 @@ export default function MissingItemScreen(){
                         </Text>
                     </TouchableOpacity>
             </ScrollView>
-            {/* Bottom nav */}
-                <StaffBottomNav />
+            <StaffBottomNav />
         </SafeAreaView>
     )
 }

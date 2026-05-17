@@ -7,10 +7,15 @@ export function setToken(token){authToken = token;}
 export function getToken(){return authToken;}
 
 async function request(method, endpoint, body = null) {
-    const headers = { 'Content-Type': 'application/json' };
+    const headers = {};
     if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
     const config = { method, headers };
-    if (body) config.body = JSON.stringify(body);
+    if (body instanceof FormData) {
+        config.body = body;
+    } else if (body) {
+        headers['Content-Type'] = 'application/json';
+        config.body = JSON.stringify(body);
+    }
 
     const res = await fetch(`${BASE_URL}${endpoint}`, config);
     const json = await res.json();
@@ -50,8 +55,17 @@ export const packItem = (itemId, containerCode, quantity) =>
     request ('POST', '/admin/picking/pack', {itemId, containerCode,quantity});
 export const moveItem = (itemId, fromContainer, toContainer) =>
     request ('POST', '/admin/picking/move', {itemId, fromContainer, toContainer});
-export const reportIncident = (itemId, reason, note) =>
-    request ('POST', '/admin/picking/incident',{itemId, reason, note});
+export const reportIncident = (itemId, reason, photoUri) => {
+    const body = { itemId, reason, note: '' };
+    if (photoUri) {
+        const formData = new FormData();
+        formData.append('file', { uri: photoUri, type: 'image/jpeg', name: 'incident.jpg' });
+        formData.append('itemId', itemId);
+        formData.append('reason', reason);
+        return request('POST', '/admin/picking/incident', formData);
+    }
+    return request('POST', '/admin/picking/incident', body);
+};
 export const handoverTask =(data) =>
     request ('POST', '/admin/picking/handover', data)
 export const getIncidents = () =>
