@@ -1,280 +1,351 @@
-import { useState, useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, TextInput, Animated, Alert, ScrollView } from 'react-native';
+import { useState, useRef } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, TextInput, Animated, Alert, ScrollView, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
-import {packItem} from '../../constants/services/api'
 import { COLORS } from '../../constants/colors';
 import StaffBottomNav from '../../components/StaffBottomNav';
-import {Modal} from 'react-native' // cho phép camera chiếm trọn cả màn hình
 import BarCodeScanner from '../../components/BarcodeScanner';
+import { packItem } from '../../constants/services/api';
 
-const bins = ['BIN-401', 'BIN-402', 'BIN-403', 'BIN-404', 'BIN-405', 'BIN-406'];
+const STEP_LABELS = ['Map', 'Quét SP', 'SL', 'Quét thùng', 'Xác nhận'];
 
 export default function PickingFlowScreen() {
-  const [showCamera, setShowCamera] = useState(false)
-  const [submitting, setSubmitting] = useState(false);
   const params = useLocalSearchParams();
-  const productIndex = parseInt((params.productIndex || '0'), 10);
-  const totalProducts = parseInt((params.totalProducts || '1'), 10);
-  const productId = params.productId;
-  const productName = params.productName;
-  const productSku = params.productSku;
-  const productLocation = params.productLocation;
-  const productQty = parseInt((params.productQty || '1'), 10);
-  const productUnit = params.productUnit;
+  const tasks = JSON.parse(params.tasksJson || '[]');
+  const startIndex = parseInt(params.startIndex || '0', 10);
 
-  const [step, setStep] = useState(1); // 1=scan, 2=qty, 3=bin, 4=map
+  const [currentIndex, setCurrentIndex] = useState(startIndex);
+  const [step, setStep] = useState(1);
+
+  const currentTask = tasks[currentIndex];
+  const isLast = currentIndex >= tasks.length - 1;
+
   const [barcode, setBarcode] = useState('');
   const [scanned, setScanned] = useState(false);
-  const [quantity, setQuantity] = useState(productQty);
-  const [selectedBin, setSelectedBin] = useState('');
-  const [arrived, setArrived] = useState(false);
+  const [quantity, setQuantity] = useState(currentTask?.qty || 1);
+  const [showCamera, setShowCamera] = useState(false);
+  const [cameraMode, setCameraMode] = useState('product');
+  const [scannedBinCode, setScannedBinCode] = useState('');
+  const [binInput, setBinInput] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   const scanAnim = useRef(new Animated.Value(1)).current;
   const flashAnim = useRef(new Animated.Value(0)).current;
-  //  THÊM hàm handleCameraScanned 
-const handleCameraScanned = (data) => {
+
+  const handleArrived = () => setStep(2);
+
+  const handleCameraScanned = (data) => {
     setShowCamera(false);
-    setBarcode(data);
-    setScanned(true);
-};
+    if (cameraMode === 'product') {
+      setBarcode(data);
+      setScanned(true);
+      setStep(3);
+    } else {
+      setScannedBinCode(data);
+      setStep(5);
+    }
+  };
 
   const handleManualScan = () => {
     if (!barcode.trim()) {
       Alert.alert('Lỗi', 'Vui lòng nhập mã barcode');
       return;
     }
+    const expected = currentTask?.sku;
+    if (expected && barcode.trim() !== expected) {
+      Alert.alert('❌ Sai sản phẩm', `Mã nhập: ${barcode.trim()}\nMã cần: ${expected}`);
+      return;
+    }
     setScanned(true);
+    setStep(3);
   };
 
-  const handleNextStep = () => {
-    if (step === 1 && !scanned) {
-      Alert.alert('Lỗi', 'Vui lòng quét mã sản phẩm trước');
-      return;
-    }
-    if (step === 3 && !selectedBin) {
-      Alert.alert('Lỗi', 'Vui lòng chọn bin');
-      return;
-    }
-    if (step < 4) {
-      setStep(step + 1);
-    }
+  const openBinCamera = () => {
+    setCameraMode('bin');
+    setShowCamera(true);
   };
 
-  const handleArrived = async () => {
-    if (!selectedBin) {
-        Alert.alert('Lỗi', 'Vui lòng chọn bin');
-        return;
+  const handleManualBinScan = () => {
+    if (!binInput.trim()) {
+      Alert.alert('Lỗi', 'Vui lòng nhập mã thùng');
+      return;
+    }
+    setScannedBinCode(binInput.trim());
+    setStep(5);
+  };
+
+  const handleConfirmBin = async () => {
+    if (!currentTask?.taskId) {
+      Alert.alert('Lỗi', 'Thiếu thông tin nhiệm vụ');
+      return;
     }
     setSubmitting(true);
+    console.log('handleConfirmBin: calling packItem with', {
+      taskId: currentTask.taskId,
+      binCode: scannedBinCode,
+      quantity,
+      currentTaskQty: currentTask?.qty,
+    });
     try {
-        await packItem(productId, selectedBin, quantity);
-        Alert.alert('✅ Thành công', 'Đã pick xong sản phẩm!');
-        router.replace({ pathname: '/(worker)/productlist', params: { taskId: productId } });
+      await packItem(currentTask.taskId, scannedBinCode, quantity);
+      if (isLast) {
+        setStep(6);
+      } else {
+        const next = tasks[currentIndex + 1];
+        setCurrentIndex(prev => prev + 1);
+        setStep(1);
+        setBarcode('');
+        setScanned(false);
+        setQuantity(next?.qty || 1);
+        setScannedBinCode('');
+        setBinInput('');
+      }
     } catch (err) {
-        Alert.alert('Lỗi', err.message || 'Không thể xác nhận pack hàng');
+      Alert.alert('Lỗi', err.message || 'Không thể xác nhận');
     } finally {
-        setSubmitting(false);
+      setSubmitting(false);
     }
-};
+  };
+
+  const handleCompleteOrder = () => {
+    router.back();
+  };
 
   const renderStepIndicator = () => (
     <View style={styles.stepRow}>
-      {[1, 2, 3, 4].map((s, i) => (
-        <View key={s} style={styles.stepItem}>
-          <View style={[styles.stepDot, step >= s && styles.stepActive]}>
-            <Text style={[styles.stepDotText, step >= s && styles.stepDotTextActive]}>
-              {s === 4 ? '📍' : s}
-            </Text>
+      {STEP_LABELS.map((label, i) => {
+        const s = i + 1;
+        return (
+          <View key={s} style={styles.stepItem}>
+            <View style={[styles.stepDot, step >= s && styles.stepActive]}>
+              <Text style={[styles.stepDotText, step >= s && styles.stepDotTextActive]}>{s}</Text>
+            </View>
+            {i < STEP_LABELS.length - 1 && (
+              <View style={[styles.stepLine, step > s && styles.stepLineActive]} />
+            )}
           </View>
-          {i < 3 && <View style={[styles.stepLine, step > s && styles.stepLineActive]} />}
-        </View>
-      ))}
+        );
+      })}
     </View>
   );
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView style={styles.scrollArea} contentContainerStyle={styles.scrollContent}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Text style={styles.backBtn}>‹</Text>
-        </TouchableOpacity>
-        <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>Picking</Text>
-          <Text style={styles.headerSub}>Sản phẩm {productIndex + 1}/{totalProducts}</Text>
-        </View>
-        <View style={styles.badge}>
-          <Text style={styles.badgeText}>{productSku}</Text>
-        </View>
-      </View>
-
-      {renderStepIndicator()}
-
-      {/* Content based on step */}
-      <View style={styles.content}>
-        {/* Step 1: Scanner */}
-        {step === 1 && (
-          <View style={styles.stepContainer}>
-            <View style={styles.scannerBox}>
-              <Animated.View style={[styles.scanFrame, { opacity: scanAnim }]}>
-                <Text style={styles.scanIcon}>📷</Text>
-                <Text style={styles.scanHint}>Đưa mã vạch vào khung</Text>
-                {/* Scan line animation */}
-                <Animated.View style={[styles.scanLine, { opacity: scanAnim.interpolate({
-                  inputRange: [0.3, 1], outputRange: [0.3, 1]
-                })}]} />
-              </Animated.View>
-              <Animated.View style={[styles.flashOverlay, { opacity: flashAnim }]} />
+        {step < 6 && (
+          <View style={styles.header}>
+            <TouchableOpacity onPress={() => router.back()}>
+              <Text style={styles.backBtn}>‹</Text>
+            </TouchableOpacity>
+            <View style={styles.headerCenter}>
+              <Text style={styles.headerTitle}>Picking</Text>
+              <Text style={styles.headerSub}>Sản phẩm {currentIndex + 1}/{tasks.length}</Text>
             </View>
-
-            {!scanned ? (
-              <>
-                <TouchableOpacity
-                      style={styles.scanBtn}
-                      onPress={() => setShowCamera(true)}
-                  >
-                      <Text style={styles.scanBtnText}>📷 Mở camera quét mã</Text>
-                  </TouchableOpacity>
-                <Text style={styles.orText}>— hoặc —</Text>
-                <View style={styles.manualRow}>
-                  <TextInput
-                    style={styles.manualInput}
-                    placeholder="Nhập mã barcode..."
-                    placeholderTextColor="#aaa"
-                    value={barcode}
-                    onChangeText={setBarcode}
-                  />
-                <TouchableOpacity
-                    style={styles.manualBtn}
-                    onPress={handleManualScan}
-                >
-                    <Text style={styles.manualBtnText}>Xác nhận</Text>
-                </TouchableOpacity>
-                </View>
-              </>
-            ) : (
-              <View style={styles.scanResult}>
-                <Text style={styles.scanSuccessIcon}>✅</Text>
-                <Text style={styles.scanSuccessText}>Quét thành công!</Text>
-                <Text style={styles.scanSku}>Mã: {barcode}</Text>
-                <Text style={styles.scanProduct}>{productName}</Text>
-                <TouchableOpacity style={styles.nextBtn} onPress={handleNextStep}>
-                  <Text style={styles.nextBtnText}>Tiếp theo →</Text>
-                </TouchableOpacity>
-              </View>
-            )}
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{currentTask?.sku}</Text>
+            </View>
           </View>
         )}
 
-        {/* Step 2: Quantity */}
-        {step === 2 && (
-          <View style={styles.stepContainer}>
-            <Text style={styles.stepTitle}>🔢 Chọn số lượng</Text>
-            <View style={styles.qtyCard}>
-              <Text style={styles.qtyProduct}>{productName}</Text>
-              <Text style={styles.qtySku}>{productSku}</Text>
-              <View style={styles.qtyRow}>
-                <TouchableOpacity
-                  style={styles.qtyBtn}
-                  onPress={() => setQuantity(Math.max(1, quantity - 1))}
-                >
-                  <Text style={styles.qtyBtnIcon}>−</Text>
-                </TouchableOpacity>
-                <View style={styles.qtyValueBox}>
-                  <Text style={styles.qtyValue}>{quantity}</Text>
-                  <Text style={styles.qtyUnit}>{productUnit}</Text>
+        {step < 6 && renderStepIndicator()}
+
+        <View style={styles.content}>
+          {/* Step 1: Map */}
+          {step === 1 && (
+            <View style={styles.stepContainer}>
+              <Text style={styles.stepTitle}>🗺️ Di chuyển đến vị trí</Text>
+              <View style={styles.mapCard}>
+                <Text style={styles.mapEmoji}>📍</Text>
+                <Text style={styles.mapLabel}>Vị trí sản phẩm</Text>
+                <View style={styles.mapDest}>
+                  <Text style={styles.mapDestIcon}>🏁</Text>
+                  <Text style={styles.mapDestLabel}>{currentTask?.location}</Text>
                 </View>
+                <View style={styles.mapInfo}>
+                  <Text style={styles.mapProductName}>{currentTask?.name}</Text>
+                  <Text style={styles.mapProductSku}>{currentTask?.sku}</Text>
+                </View>
+                <View style={styles.mapRoute}>
+                  <Text style={styles.mapArrow}>↓</Text>
+                  <Text style={styles.mapStep}>Đi đến kệ, tìm vị trí {currentTask?.location}</Text>
+                </View>
+              </View>
+              <TouchableOpacity style={styles.arriveBtn} onPress={handleArrived}>
+                <Text style={styles.arriveBtnText}>✅ Tôi đã đến vị trí</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* Step 2: Scan product */}
+          {step === 2 && (
+            <View style={styles.stepContainer}>
+              <View style={styles.scannerBox}>
+                <Animated.View style={[styles.scanFrame, { opacity: scanAnim }]}>
+                  <Text style={styles.scanIcon}>📷</Text>
+                  <Text style={styles.scanHint}>Đưa mã vạch vào khung</Text>
+                  <Animated.View style={[styles.scanLine, { opacity: scanAnim.interpolate({
+                    inputRange: [0.3, 1], outputRange: [0.3, 1]
+                  })}]} />
+                </Animated.View>
+                <Animated.View style={[styles.flashOverlay, { opacity: flashAnim }]} />
+              </View>
+
+              {!scanned ? (
+                <>
+                  <TouchableOpacity
+                    style={styles.scanBtn}
+                    onPress={() => { setCameraMode('product'); setShowCamera(true); }}
+                  >
+                    <Text style={styles.scanBtnText}>📷 Mở camera quét mã</Text>
+                  </TouchableOpacity>
+                  <Text style={styles.orText}>— hoặc —</Text>
+                  <View style={styles.manualRow}>
+                    <TextInput
+                      style={styles.manualInput}
+                      placeholder="Nhập mã barcode..."
+                      placeholderTextColor="#aaa"
+                      value={barcode}
+                      onChangeText={setBarcode}
+                    />
+                    <TouchableOpacity style={styles.manualBtn} onPress={handleManualScan}>
+                      <Text style={styles.manualBtnText}>Xác nhận</Text>
+                    </TouchableOpacity>
+                  </View>
+                </>
+              ) : (
+                <View style={styles.scanResult}>
+                  <Text style={styles.scanSuccessIcon}>✅</Text>
+                  <Text style={styles.scanSuccessText}>Quét thành công!</Text>
+                  <Text style={styles.scanSku}>Mã: {barcode}</Text>
+                  <Text style={styles.scanProduct}>{currentTask?.name}</Text>
+                  <Text style={styles.smallHint}>Chuyển sang bước chọn số lượng...</Text>
+                </View>
+              )}
+            </View>
+          )}
+
+          {/* Step 3: Quantity */}
+          {step === 3 && (
+            <View style={styles.stepContainer}>
+              <Text style={styles.stepTitle}>🔢 Chọn số lượng</Text>
+              <Text style={styles.qtyRequired}>Cần lấy: {currentTask?.qty || 0} {currentTask?.unit}</Text>
+              <View style={styles.qtyCard}>
+                <Text style={styles.qtyProduct}>{currentTask?.name}</Text>
+                <Text style={styles.qtySku}>{currentTask?.sku}</Text>
+                <View style={styles.qtyRow}>
+                  <TouchableOpacity
+                    style={styles.qtyBtn}
+                    onPress={() => setQuantity(Math.max(1, quantity - 1))}
+                  >
+                    <Text style={styles.qtyBtnIcon}>−</Text>
+                  </TouchableOpacity>
+                  <View style={styles.qtyValueBox}>
+                    <Text style={styles.qtyValue}>{quantity}</Text>
+                    <Text style={styles.qtyUnit}>{currentTask?.unit}</Text>
+                  </View>
                 <TouchableOpacity
                   style={styles.qtyBtn}
-                  onPress={() => setQuantity(quantity + 1)}
+                  onPress={() => setQuantity(Math.min(currentTask?.qty ?? 9999, quantity + 1))}
                 >
                   <Text style={styles.qtyBtnIcon}>+</Text>
                 </TouchableOpacity>
+                </View>
+              </View>
+              <TouchableOpacity style={styles.nextBtn} onPress={() => setStep(4)}>
+                <Text style={styles.nextBtnText}>Quét mã thùng →</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* Step 4: Scan bin */}
+          {step === 4 && (
+            <View style={styles.stepContainer}>
+              <View style={styles.scannerBox}>
+                <Animated.View style={[styles.scanFrame, { opacity: scanAnim }]}>
+                  <Text style={styles.scanIcon}>📦</Text>
+                  <Text style={styles.scanHint}>Đưa mã thùng vào khung</Text>
+                  <Animated.View style={[styles.scanLine, { opacity: scanAnim.interpolate({
+                    inputRange: [0.3, 1], outputRange: [0.3, 1]
+                  })}]} />
+                </Animated.View>
+                <Animated.View style={[styles.flashOverlay, { opacity: flashAnim }]} />
+              </View>
+              <TouchableOpacity style={styles.scanBtn} onPress={openBinCamera}>
+                <Text style={styles.scanBtnText}>📷 Quét mã thùng</Text>
+              </TouchableOpacity>
+              <Text style={styles.orText}>— hoặc —</Text>
+              <View style={styles.manualRow}>
+                <TextInput
+                  style={styles.manualInput}
+                  placeholder="Nhập mã thùng..."
+                  placeholderTextColor="#aaa"
+                  value={binInput}
+                  onChangeText={setBinInput}
+                />
+                <TouchableOpacity style={styles.manualBtn} onPress={handleManualBinScan}>
+                  <Text style={styles.manualBtnText}>Xác nhận</Text>
+                </TouchableOpacity>
               </View>
             </View>
-            <TouchableOpacity style={styles.nextBtn} onPress={handleNextStep}>
-              <Text style={styles.nextBtnText}>Tiếp theo →</Text>
-            </TouchableOpacity>
-          </View>
-        )}
+          )}
 
-        {/* Step 3: Bin */}
-        {step === 3 && (
-          <View style={styles.stepContainer}>
-            <Text style={styles.stepTitle}>📦 Chọn Bin</Text>
-            <Text style={styles.stepSub}>Chọn bin để đặt sản phẩm</Text>
-            <View style={styles.binGrid}>
-              {bins.map(bin => (
+          {/* Step 5: Confirm bin */}
+          {step === 5 && (
+            <View style={styles.stepContainer}>
+              <Text style={styles.stepTitle}>📦 Xác nhận thùng</Text>
+              <View style={styles.confirmCard}>
+                <Text style={styles.confirmLabel}>Thùng đã quét</Text>
+                <Text style={styles.confirmBinCode}>{scannedBinCode}</Text>
+                <View style={styles.confirmDetail}>
+                  <Text style={styles.confirmProduct}>{currentTask?.name}</Text>
+                  <Text style={styles.confirmQty}>Số lượng: {quantity} {currentTask?.unit}</Text>
+                </View>
+              </View>
+              <View style={styles.confirmActions}>
                 <TouchableOpacity
-                  key={bin}
-                  style={[styles.binBtn, selectedBin === bin && styles.binBtnActive]}
-                  onPress={() => setSelectedBin(bin)}
+                  style={styles.rescanBtn}
+                  onPress={() => { setCameraMode('bin'); setShowCamera(true); }}
                 >
-                  <Text style={styles.binIcon}>📦</Text>
-                  <Text style={[styles.binLabel, selectedBin === bin && styles.binLabelActive]}>
-                    {bin}
+                  <Text style={styles.rescanBtnText}>🔄 Quét lại</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.confirmBtn, submitting && { opacity: 0.7 }]}
+                  onPress={handleConfirmBin}
+                  disabled={submitting}
+                >
+                  <Text style={styles.confirmBtnText}>
+                    {submitting ? 'Đang xử lý...' : '✅ Xác nhận đúng thùng'}
                   </Text>
                 </TouchableOpacity>
-              ))}
+              </View>
             </View>
-            <TextInput
-              style={styles.binInput}
-              placeholder="Hoặc nhập mã bin khác..."
-              placeholderTextColor="#aaa"
-              value={selectedBin}
-              onChangeText={setSelectedBin}
-            />
-            <TouchableOpacity style={styles.nextBtn} onPress={handleNextStep}>
-              <Text style={styles.nextBtnText}>Tiếp theo →</Text>
-            </TouchableOpacity>
-          </View>
-        )}
+          )}
 
-        {/* Step 4: Map */}
-        {step === 4 && (
-          <View style={styles.stepContainer}>
-            <Text style={styles.stepTitle}>🗺️ Di chuyển đến sản phẩm tiếp theo</Text>
-            {!arrived ? (
-              <>
-                <View style={styles.mapCard}>
-                  <Text style={styles.mapEmoji}>📍</Text>
-                  <Text style={styles.mapLabel}>Vị trí hiện tại</Text>
-                  <View style={styles.mapRoute}>
-                    <Text style={styles.mapArrow}>↓</Text>
-                    <Text style={styles.mapStep}>Đi thẳng 20m</Text>
-                  </View>
-                  <View style={styles.mapRoute}>
-                    <Text style={styles.mapArrow}>→</Text>
-                    <Text style={styles.mapStep}>Rẽ phải, dãy 14</Text>
-                  </View>
-                  <View style={styles.mapRoute}>
-                    <Text style={styles.mapArrow}>↓</Text>
-                    <Text style={styles.mapStep}>Kệ 07, tầng B</Text>
-                  </View>
-                  <View style={[styles.mapDest, { marginTop: 12 }]}>
-                    <Text style={styles.mapDestIcon}>🏁</Text>
-                    <Text style={styles.mapDestLabel}>{productLocation}</Text>
-                  </View>
-                </View>
-                <TouchableOpacity style={styles.arriveBtn} onPress={handleArrived}>
-                  <Text style={styles.arriveBtnText}>✅ Tôi đã đến vị trí</Text>
-                </TouchableOpacity>
-              </>
-            ) : null}
-          </View>
-        )}
-      </View>
+          {/* Step 6: Order complete */}
+          {step === 6 && (
+            <View style={styles.completeContainer}>
+              <Text style={styles.completeIcon}>🎉</Text>
+              <Text style={styles.completeTitle}>Hoàn tất đơn hàng!</Text>
+              <Text style={styles.completeSub}>
+                Tất cả {tasks.length} sản phẩm đã được lấy và bỏ vào thùng.
+                Hãy xác nhận hoàn tất đơn hàng tại màn hình danh sách.
+              </Text>
+              <TouchableOpacity style={styles.completeBtn} onPress={handleCompleteOrder}>
+                <Text style={styles.completeBtnText}>Về danh sách sản phẩm</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
       </ScrollView>
-                  <Modal visible={showCamera} animationType="slide">
-                <BarCodeScanner
-                    expectedCode={productSku}
-                    onScanned={handleCameraScanned}
-                    onClose={() => setShowCamera(false)}
-                />
-            </Modal>
-        <StaffBottomNav />
+
+      <Modal visible={showCamera} animationType="slide">
+        <BarCodeScanner
+          expectedCode={cameraMode === 'product' ? currentTask?.sku || '' : ''}
+          onScanned={handleCameraScanned}
+          onClose={() => setShowCamera(false)}
+        />
+      </Modal>
+      <StaffBottomNav />
     </SafeAreaView>
   );
 }
@@ -299,29 +370,51 @@ const styles = StyleSheet.create({
   // Steps
   stepRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    padding: 16, backgroundColor: '#fff',
+    padding: 12, backgroundColor: '#fff', paddingHorizontal: 8,
   },
   stepItem: { flexDirection: 'row', alignItems: 'center' },
   stepDot: {
-    width: 28, height: 28, borderRadius: 14, backgroundColor: '#e0e0e0',
+    width: 24, height: 24, borderRadius: 12, backgroundColor: '#e0e0e0',
     alignItems: 'center', justifyContent: 'center',
   },
   stepActive: { backgroundColor: COLORS.primary },
-  stepDotText: { fontSize: 12, fontWeight: '700', color: '#999' },
+  stepDotText: { fontSize: 10, fontWeight: '700', color: '#999' },
   stepDotTextActive: { color: '#fff' },
-  stepLine: { width: 40, height: 2, backgroundColor: '#e0e0e0', marginHorizontal: 4 },
+  stepLine: { width: 24, height: 2, backgroundColor: '#e0e0e0', marginHorizontal: 3 },
   stepLineActive: { backgroundColor: COLORS.primary },
 
   content: { flex: 1, padding: 16 },
   stepContainer: { flex: 1, justifyContent: 'center' },
   stepTitle: { fontSize: 18, fontWeight: '700', color: '#222', textAlign: 'center', marginBottom: 8 },
-  stepSub: { fontSize: 13, color: '#888', textAlign: 'center', marginBottom: 20 },
+
+  // Map
+  mapCard: {
+    backgroundColor: '#fff', borderRadius: 20, padding: 20, marginBottom: 20,
+  },
+  mapEmoji: { fontSize: 40, textAlign: 'center', marginBottom: 8 },
+  mapLabel: { fontSize: 14, fontWeight: '700', color: '#222', textAlign: 'center', marginBottom: 16 },
+  mapDest: { flexDirection: 'row', alignItems: 'center', gap: 8, justifyContent: 'center', marginBottom: 8 },
+  mapDestIcon: { fontSize: 24 },
+  mapDestLabel: { fontSize: 28, fontWeight: '900', color: COLORS.primary, letterSpacing: 2 },
+  mapInfo: { alignItems: 'center', marginBottom: 16 },
+  mapProductName: { fontSize: 15, fontWeight: '600', color: '#222' },
+  mapProductSku: { fontSize: 12, color: '#888' },
+  mapRoute: {
+    flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12,
+    borderTopWidth: 1, borderTopColor: '#eee',
+  },
+  mapArrow: { fontSize: 20, width: 30, textAlign: 'center' },
+  mapStep: { fontSize: 13, color: '#666', flex: 1 },
+  arriveBtn: {
+    backgroundColor: COLORS.primary, borderRadius: 14, padding: 18, alignItems: 'center',
+    marginTop: 10,
+  },
+  arriveBtnText: { color: '#fff', fontSize: 16, fontWeight: '800' },
 
   // Scanner
   scannerBox: {
-    backgroundColor: '#1a1a1a', borderRadius: 20, height: 280,
-    alignItems: 'center', justifyContent: 'center', marginBottom: 20,
-    overflow: 'hidden',
+    backgroundColor: '#1a1a1a', borderRadius: 20, height: 260,
+    alignItems: 'center', justifyContent: 'center', marginBottom: 20, overflow: 'hidden',
   },
   scanFrame: { alignItems: 'center' },
   scanIcon: { fontSize: 60, marginBottom: 12 },
@@ -331,9 +424,7 @@ const styles = StyleSheet.create({
     shadowColor: COLORS.accent, shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.8, shadowRadius: 10, elevation: 4,
   },
-  flashOverlay: {
-    ...StyleSheet.absoluteFillObject, backgroundColor: '#fff',
-  },
+  flashOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: '#fff' },
   scanBtn: {
     backgroundColor: COLORS.primary, borderRadius: 14, padding: 18,
     alignItems: 'center', marginBottom: 10,
@@ -345,20 +436,22 @@ const styles = StyleSheet.create({
     flex: 1, backgroundColor: '#fff', borderRadius: 12, padding: 14, fontSize: 14,
   },
   manualBtn: {
-    backgroundColor: '#e8f5e9', borderRadius: 12, paddingHorizontal: 16,
-    justifyContent: 'center',
+    backgroundColor: '#e8f5e9', borderRadius: 12, paddingHorizontal: 16, justifyContent: 'center',
   },
   manualBtnText: { color: COLORS.primary, fontWeight: '700', fontSize: 13 },
   scanResult: { alignItems: 'center', padding: 20 },
   scanSuccessIcon: { fontSize: 48, marginBottom: 8 },
   scanSuccessText: { fontSize: 18, fontWeight: '700', color: COLORS.primary, marginBottom: 4 },
   scanSku: { fontSize: 13, color: '#888', marginBottom: 4 },
-  scanProduct: { fontSize: 15, fontWeight: '600', color: '#222', marginBottom: 20 },
+  scanProduct: { fontSize: 15, fontWeight: '600', color: '#222', marginBottom: 8 },
+  smallHint: { fontSize: 12, color: '#aaa' },
 
   // Quantity
+  qtyRequired: {
+    fontSize: 15, fontWeight: '700', color: '#e65100', textAlign: 'center', marginBottom: 12,
+  },
   qtyCard: {
-    backgroundColor: '#fff', borderRadius: 20, padding: 24, alignItems: 'center',
-    marginBottom: 24,
+    backgroundColor: '#fff', borderRadius: 20, padding: 24, alignItems: 'center', marginBottom: 24,
   },
   qtyProduct: { fontSize: 16, fontWeight: '700', color: '#222', marginBottom: 4 },
   qtySku: { fontSize: 12, color: '#888', marginBottom: 20 },
@@ -372,47 +465,45 @@ const styles = StyleSheet.create({
   qtyValue: { fontSize: 40, fontWeight: '900', color: '#222' },
   qtyUnit: { fontSize: 13, color: '#888', marginTop: 4 },
 
-  // Bin
-  binGrid: {
-    flexDirection: 'row', flexWrap: 'wrap', gap: 10, justifyContent: 'center', marginBottom: 16,
+  // Confirm bin
+  confirmCard: {
+    backgroundColor: '#fff', borderRadius: 20, padding: 24, alignItems: 'center', marginBottom: 20,
   },
-  binBtn: {
-    width: '30%', backgroundColor: '#fff', borderRadius: 14, padding: 14,
-    alignItems: 'center', gap: 6, borderWidth: 2, borderColor: 'transparent',
+  confirmLabel: { fontSize: 12, color: '#888', marginBottom: 8 },
+  confirmBinCode: {
+    fontSize: 36, fontWeight: '900', color: '#ffd600', backgroundColor: '#1a3a2a',
+    paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12, overflow: 'hidden',
+    marginBottom: 16, letterSpacing: 3,
   },
-  binBtnActive: { borderColor: COLORS.primary, backgroundColor: '#e8f5e9' },
-  binIcon: { fontSize: 24 },
-  binLabel: { fontSize: 12, fontWeight: '700', color: '#444' },
-  binLabelActive: { color: COLORS.primary },
-  binInput: {
-    backgroundColor: '#fff', borderRadius: 12, padding: 14, fontSize: 14, marginBottom: 16,
+  confirmDetail: { alignItems: 'center' },
+  confirmProduct: { fontSize: 15, fontWeight: '600', color: '#222', marginBottom: 4 },
+  confirmQty: { fontSize: 13, color: '#888' },
+  confirmActions: { gap: 10 },
+  rescanBtn: {
+    borderRadius: 14, padding: 16, alignItems: 'center',
+    borderWidth: 1.5, borderColor: '#ddd', backgroundColor: '#fff',
   },
+  rescanBtnText: { color: '#666', fontSize: 14, fontWeight: '600' },
+  confirmBtn: {
+    backgroundColor: COLORS.primary, borderRadius: 14, padding: 18, alignItems: 'center',
+  },
+  confirmBtnText: { color: '#fff', fontSize: 16, fontWeight: '800' },
 
-  // Map
-  mapCard: {
-    backgroundColor: '#fff', borderRadius: 20, padding: 20, marginBottom: 20,
+  // Complete
+  completeContainer: {
+    flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32,
   },
-  mapEmoji: { fontSize: 40, textAlign: 'center', marginBottom: 8 },
-  mapLabel: { fontSize: 14, fontWeight: '700', color: '#222', textAlign: 'center', marginBottom: 16 },
-  mapRoute: {
-    flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8,
-    borderBottomWidth: 0.5, borderBottomColor: '#eee',
+  completeIcon: { fontSize: 64, marginBottom: 16 },
+  completeTitle: { fontSize: 24, fontWeight: '900', color: '#222', textAlign: 'center', marginBottom: 8 },
+  completeSub: { fontSize: 14, color: '#888', textAlign: 'center', lineHeight: 20, marginBottom: 32 },
+  completeBtn: {
+    backgroundColor: COLORS.primary, borderRadius: 14, paddingHorizontal: 48, paddingVertical: 16,
   },
-  mapArrow: { fontSize: 20, width: 30, textAlign: 'center' },
-  mapStep: { fontSize: 13, color: '#666' },
-  mapDest: { flexDirection: 'row', alignItems: 'center', gap: 8, justifyContent: 'center' },
-  mapDestIcon: { fontSize: 24 },
-  mapDestLabel: { fontSize: 16, fontWeight: '800', color: COLORS.primary },
+  completeBtnText: { color: '#fff', fontSize: 16, fontWeight: '800' },
 
   // Buttons
   nextBtn: {
-    backgroundColor: COLORS.primary, borderRadius: 14, padding: 18, alignItems: 'center',
-    marginTop: 10,
+    backgroundColor: COLORS.primary, borderRadius: 14, padding: 18, alignItems: 'center', marginTop: 10,
   },
   nextBtnText: { color: '#fff', fontSize: 16, fontWeight: '800' },
-  arriveBtn: {
-    backgroundColor: COLORS.primary, borderRadius: 14, padding: 18, alignItems: 'center',
-    marginTop: 10,
-  },
-  arriveBtnText: { color: '#fff', fontSize: 16, fontWeight: '800' },
 });
