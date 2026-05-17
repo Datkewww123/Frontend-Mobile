@@ -1,4 +1,4 @@
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import{
     View,
     Text,
@@ -10,7 +10,7 @@ import{
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {COLORS} from '../../constants/colors'
-import {useState, useEffect} from 'react'
+import {useState, useCallback} from 'react'
 import StaffBottomNav from '../../components/StaffBottomNav'
 import { useAuth } from '../../contexts/AuthContext'
 import {getAssignedTasks} from '../../constants/services/api' 
@@ -21,7 +21,7 @@ export default function DashboardScreen(){
     const {userName, userRole, assignedZone} = useAuth();
     const [tasks, setTasks] = useState([]);
     const [loading, setLoading] = useState(true);
-    useEffect(() =>{
+    useFocusEffect(useCallback(() => {
         async function fetchTasks() {
             try{
                 const res = await getAssignedTasks();
@@ -46,8 +46,9 @@ export default function DashboardScreen(){
                 setLoading(false);
             }
         }
+        setLoading(true);
         fetchTasks();
-    }, []);
+    }, []));
     // Tính % task hoàn thành
     const getPct = (task) =>{
         if(!task.totalCount) return 0
@@ -58,6 +59,13 @@ export default function DashboardScreen(){
         if(status === 'completed') return styles.statusGreen;
         if(status === 'in_progress') return styles.statusOrange;
         return styles.statusGray;
+    };
+    // lấy màu thanh % theo khoảng
+    const getProgressColor = (pct) =>{
+        if(pct < 25) return '#e53935';
+        if(pct < 50) return '#fb8c00';
+        if(pct < 75) return '#fdd835';
+        return '#43a047';
     };
     // lấy label cho từng trạng tháy
     const getStatusLabel = (status) =>{
@@ -109,8 +117,8 @@ export default function DashboardScreen(){
                 <Text style={styles.skuText}>
                     {task.pickedCount}/{task.totalCount} SKU
                 </Text>
-                <View style={styles.progressBar}>
-                    <View style={[styles.progressFill, { width: `${getPct(task)}%` }]} />
+                    <View style={styles.progressBar}>
+                    <View style={[styles.progressFill, { width: `${getPct(task)}%`, backgroundColor: getProgressColor(getPct(task)) }]} />
                 </View>
                 <Text style={styles.pctText}>{getPct(task)}%</Text>
             </View>
