@@ -52,7 +52,8 @@ export default function ScancontainerScreen(){
     const handleBinScanned = async (scannedCode) => {
     setShowCamera(false);
 
-    if (scannedCode !== binCode) {
+    const targetBin = binCode || scannedCode;
+    if (binCode && scannedCode !== binCode) {
         Alert.alert(
             '❌ Sai thùng',
             `Mã quét: ${scannedCode}\nMã cần: ${binCode}`,
@@ -66,10 +67,10 @@ export default function ScancontainerScreen(){
     }
     setSubmitting(true);
     try {
-        await packItem(taskId, binCode, parseInt(productQty, 10));
+        await packItem(taskId, targetBin, parseInt(productQty, 10));
         Alert.alert(
             '✅ Hoàn thành!',
-            `Đã bỏ ${productQty} ${displayData.unit} vào ${binCode}`,
+            `Đã bỏ ${productQty} ${displayData.unit} vào ${targetBin}`,
             [{ text: 'Về danh sách', onPress: () => router.back() }]
         );
     } catch (err) {
