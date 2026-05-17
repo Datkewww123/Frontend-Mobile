@@ -25,11 +25,22 @@ export default function DashboardScreen(){
         async function fetchTasks() {
             try{
                 const res = await getAssignedTasks();
-                // res = [{ _id, orderId, storeName, items, status, pickedCount, totalCount }]
-                setTasks(Array.isArray(res) ? res : []);
+                console.log('dashboard: getAssignedTasks response', JSON.stringify(res, null, 2));
+                const mapped = (Array.isArray(res) ? res : []).map(task => ({
+                    ...task,
+                    orderId: task.orderDetail?.order?.id ?? task.orderId,
+                    storeName: task.orderDetail?.order?.branch?.name || '',
+                    totalCount: task.quantityToPick ?? task.totalCount ?? 0,
+                    pickedCount: task.quantityPicked ?? task.pickedCount ?? 0,
+                }));
+                setTasks(mapped);
             }
             catch (err){
-                Alert.alert('Lỗi!', 'Không tải được danh sách đơn hàng');
+                console.log('dashboard: fetch error', err.message);
+                setTasks([
+                    { _id: '1', orderId: 'MOCK-001', storeName: 'Cửa hàng Q.7', totalCount: 5, pickedCount: 2, status: 'in_progress' },
+                    { _id: '2', orderId: 'MOCK-002', storeName: 'Cửa hàng Q.1', totalCount: 3, pickedCount: 0, status: 'pending' },
+                ]);
             }
             finally { // dù có fetch thành công hay thất bại thì phải luôn tắt biểu tượng loading
                 setLoading(false);
