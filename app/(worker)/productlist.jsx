@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Text, View, TouchableOpacity, StyleSheet, FlatList, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {getAssignedTasks} from '../../constants/services/api'
 import { COLORS } from '../../constants/colors';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { useAuth } from '../../contexts/AuthContext';
 import StaffBottomNav from '../../components/StaffBottomNav';
 
@@ -23,28 +23,38 @@ export default function productListScreen() {
   const { userRole } = useAuth();
 
   const [taskInfo, setTaskInfo] = useState(null);
-  useEffect (() =>{
+  useFocusEffect(useCallback(() => {
     async function fetchItem() {
       try{
+        setLoading(true);
         const res = await getAssignedTasks();
         console.log('productlist: getAssignedTasks response', JSON.stringify(res, null, 2));
         const arr = Array.isArray(res) ? res : [];
         console.log(`productlist: looking for taskId=${taskId}, type=${typeof taskId}`);
         console.log(`productlist: available task IDs:`, arr.map(t => ({ id: t.id, type: typeof t.id })));
         const task = arr.find(t => String(t.id) === String(taskId));
-        const prod = task?.orderDetail?.product;
-        console.log('productlist: found task?', !!task, 'product?', !!prod);
-        if(task && prod){
+        console.log('productlist: found task?', !!task);
+        console.log('productlist: found task data', JSON.stringify(task, null, 2));
+        if(task){
+          const orderId = task.orderDetail?.order?.id;
+          // find all tasks belonging to the same order
+          const orderTasks = orderId
+            ? arr.filter(t => t.orderDetail?.order?.id === orderId)
+            : [task];
           setTaskInfo(task);
-          setProducts([{
-            taskId: task.id,
-            location: task.location?.name || '',
-            name: prod.name,
-            sku: String(prod.id),
-            qty: task.quantityToPick,
-            unit: 'cái',
-            done: task.status === 'completed',
-          }]);
+          setProducts(orderTasks.map(t => {
+            const prod = t.orderDetail?.product;
+            const remaining = (t.quantityToPick ?? 1) - (t.quantityPicked ?? 0);
+            return {
+              taskId: t.id,
+              location: t.location?.name || '',
+              name: prod?.name || 'Unknown',
+              sku: String(prod?.id ?? t.id),
+              qty: Math.max(0, remaining),
+              unit: 'cái',
+              done: t.status === 'completed' || remaining <= 0,
+            };
+          }));
         } else {
           // fallback: show hardcoded mock data để user thấy gì đó
           setProducts(initialProducts);
@@ -59,7 +69,7 @@ export default function productListScreen() {
       }
     }
     fetchItem();
-  }, [taskId]);
+  }, [taskId]));
 
   const doneCount = products.filter(p => p.done).length;
   const remaining = products.length - doneCount;
@@ -69,14 +79,8 @@ export default function productListScreen() {
     router.push({
       pathname: '/(worker)/pickingflow',
       params: {
-        productIndex: String(index),
-        totalProducts: String(products.length),
-        productId: String(item.taskId),
-        productName: item.name,
-        productSku: item.sku,
-        productLocation: item.location,
-        productQty: String(item.qty),
-        productUnit: item.unit,
+        tasksJson: JSON.stringify(products),
+        startIndex: String(index),
       },
     });
   };
